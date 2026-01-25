@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { MainLayout } from "./layouts/MainLayout";
@@ -8,9 +9,15 @@ import ConfirmEmailPage from "./pages/ConfirmEmailPage";
 import ConfirmationCode from "./pages/ConfirmationCodePage";
 import ChangePassWordPage from "./pages/ChangePasswordPage";
 import { AuthLayout } from "./layouts/AuthLayout";
+=======
+
+
+function App() {
+>>>>>>> 9858d09 (Restructing the code base from Modules folder --> Controller/Service/Repository folders)
 
 export default function App() {
   return (
+<<<<<<< HEAD
     <BrowserRouter>
       <Routes>
         {/* Main app page */}
@@ -27,5 +34,10 @@ export default function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+=======
+    <>
+      <div>Hello, World!</div>
+    </>
+>>>>>>> 9858d09 (Restructing the code base from Modules folder --> Controller/Service/Repository folders)
   )
 }

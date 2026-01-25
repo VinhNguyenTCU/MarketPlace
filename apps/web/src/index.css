@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 html, body, #root {
   height: 100%;
   width: 100%;
@@ -7,3 +8,5 @@ html, body, #root {
 body {
   overflow-x: hidden;
 }
+=======
+>>>>>>> 9858d09 (Restructing the code base from Modules folder --> Controller/Service/Repository folders)
