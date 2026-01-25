@@ -1,24 +1,30 @@
-name: "Apply PR conflict label"
+name: apply-conflict-label
 
 on:
-  push:
-    branches:
-      - main
   pull_request_target:
-    types: [synchronize]
+    types: [opened, synchronize, reopened]
 
 permissions:
-  pull-requests: write
+  contents: read
   issues: write
+  pull-requests: write
 
 jobs:
-  apply-conflict-label:
+  label-merge-conflicts:
     runs-on: ubuntu-latest
+
+    # (Optional but recommended) repeat at job-level to avoid any override
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
     steps:
       - name: Check if PRs have conflicts
-        uses: mschilde/auto-label-merge-conflicts@master
+        uses: eps1lon/actions-label-merge-conflict@v3
         with:
-          CONFLICT_LABEL_NAME: "Has conflicts"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAX_RETRIES: 5
-          WAIT_MS: 5000
+          dirtyLabel: "Action required: fix conflict"
+          removeOnDirtyLabel: "READY TO MERGE"
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          commentOnDirty: "This pull request has conflicts, please resolve those before we can evaluate the pull request."
+          commentOnClean: "Conflicts have been resolved. A maintainer will review the pull request shortly."
