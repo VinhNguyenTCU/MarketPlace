@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { supabaseAnon } from "../../supabase/client.js";
+import { supabaseAnon } from "../supabase/client.js";
 
 export type AuthUser = {
   id: string;
