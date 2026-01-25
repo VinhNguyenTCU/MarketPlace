@@ -14,11 +14,21 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "23"
+          node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Install dependencies API
         run: npm ci
+        working-directory: ./apps/api
 
-      - name: Build project
+      - name: Install dependencies WEB
+        run: npm ci
+        working-directory: ./apps/web
+
+      - name: Build API
         run: npm run build
+        working-directory: ./apps/api
+
+      - name: Build WEB
+        run: npm run build
+        working-directory: ./apps/web
