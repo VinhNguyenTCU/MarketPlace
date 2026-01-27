@@ -27,6 +27,9 @@ jobs:
 
       - name: Build API
         run: npm run build --prefix=apps/api
+      
+      - name: Test API
+        run: npm run test --prefix=apps/api
 
       - name: Install dependencies WEB
         run: npm ci --prefix=apps/web
