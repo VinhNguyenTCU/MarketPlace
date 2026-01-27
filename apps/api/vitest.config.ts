@@ -4,5 +4,6 @@ export default defineConfig({
   test: {
     include: ["src/tests/**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/.git/**"],
+    reporters: "verbose",
   },
 });
