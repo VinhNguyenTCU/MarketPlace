@@ -44,7 +44,7 @@ const Logo = styled("img")(() => ({
   flexShrink: 0,
 }));
 
-const SearchSlot = styled(Box)(({ theme }) => ({
+const SearchSlot = styled(Box)(() => ({
   flex: "1 1 auto",
   minWidth: 0,
   borderRadius: 999,
