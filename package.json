@@ -2,9 +2,10 @@
   "name": "marketplace",
   "private": true,
   "scripts": {
-    "dev:web": "npm run dev --prefix=apps/web",
-    "dev:api": "npm run dev --prefix=apps/api",
-    "dev": "concurrently -k --names web,api -c auto \"npm --prefix apps/web run dev\" \"npm --prefix apps/api run dev\""
+    "dev:web": "yarn --cwd apps/web dev",
+    "dev:api": "yarn --cwd apps/api dev",
+    "dev": "concurrently -k --names web,api -c auto \"yarn --cwd apps/web dev\" \"yarn --cwd apps/api dev\"",
+    "test": "cd apps/api && yarn test"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
