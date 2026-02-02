@@ -20,19 +20,16 @@ jobs:
           cache-dependency-path: "package-lock.json"
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install
 
       - name: Install dependencies API
-        run: npm ci --prefix=apps/api
+        run: yarn install --prefix=apps/api
 
-      - name: Build API
-        run: npm run build --prefix=apps/api
-      
       - name: Test API
-        run: npm run test --prefix=apps/api
+        run: yarn test
 
       - name: Install dependencies WEB
-        run: npm ci --prefix=apps/web
+        run: yarn install --prefix=apps/web
 
-      - name: Build WEB
-        run: npm run build --prefix=apps/web
+      - name: Build API & WEB
+        run: yarn build:web && yarn build:api

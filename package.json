@@ -5,7 +5,10 @@
     "dev:web": "yarn --cwd apps/web dev",
     "dev:api": "yarn --cwd apps/api dev",
     "dev": "concurrently -k --names web,api -c auto \"yarn --cwd apps/web dev\" \"yarn --cwd apps/api dev\"",
-    "test": "cd apps/api && yarn test"
+    "test": "cd apps/api && yarn test",
+    "build:web": "yarn --cwd apps/web build",
+    "build:api": "yarn --cwd apps/api build",
+    "build": "yarn build:web && yarn build:api"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
