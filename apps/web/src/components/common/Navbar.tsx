@@ -6,6 +6,7 @@ import { styled } from "@mui/material/styles";
 import { Button } from "../ui/Button";
 import { SearchInput } from "../ui/SearchInput";
 import logo from "../../assets/tcu_logo.png";
+import { Link } from "react-router-dom";
 
 const CATEGORIES = [
   { value: "all", label: "All categories" },
@@ -122,8 +123,12 @@ export function Navbar() {
             <Spacer />
 
             <Group>
-              <SignInButton variant="outlined">Sign In</SignInButton>
-              <SignUpButton>Sign Up</SignUpButton>
+              <Link to="/sign-in">
+                <SignInButton variant="outlined">Sign In</SignInButton>
+              </Link>
+              <Link to="/sign-up">
+                <SignUpButton>Sign Up</SignUpButton>
+              </Link>
             </Group>
           </Right>
         </Row>

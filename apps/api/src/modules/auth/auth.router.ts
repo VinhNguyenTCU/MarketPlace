@@ -4,6 +4,11 @@ import { requireAuth } from "./requireAuth.js";
 
 export const authRouter = Router();
 
+// GET /
+authRouter.get("/", async (req, res) => {
+  return res.json({"message": "here is the auth router"});
+});
+
 // POST /auth/signup
 authRouter.post("/signup", async (req, res) => {
   const { email, password } = req.body ?? {};
