@@ -15,24 +15,17 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "23"
-          cache: "npm"
-          cache-dependency-path: "package-lock.json"
+          node-version: "25"
+          cache: "yarn"
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Install dependencies API
-        run: npm ci --prefix=apps/api
+        run: yarn install
 
       - name: Build API
-        run: npm run build --prefix=apps/api
-      
-      - name: Test API
-        run: npm run test --prefix=apps/api
+        run: yarn workspace api run build
 
-      - name: Install dependencies WEB
-        run: npm ci --prefix=apps/web
+      - name: Test API
+        run: yarn workspace api run test
 
       - name: Build WEB
-        run: npm run build --prefix=apps/web
+        run: yarn workspace web run build
