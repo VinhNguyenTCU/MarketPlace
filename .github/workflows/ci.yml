@@ -24,11 +24,14 @@ jobs:
       - name: Install dependencies API
         run: yarn install --prefix=apps/api
 
+      - name: Build API
+        run: yarn build:api
+
       - name: Test API
         run: yarn test
 
       - name: Install dependencies WEB
         run: yarn install --prefix=apps/web
 
-      - name: Build API & WEB
-        run: yarn build:web && yarn build:api
+      - name: Build WEB
+        run: yarn build:web
