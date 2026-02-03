@@ -25,7 +25,7 @@ jobs:
         run: yarn install --prefix=apps/api
 
       - name: Test API
-        run: yarn test
+        run: cd apps/api && yarn test
 
       - name: Install dependencies WEB
         run: yarn install --prefix=apps/web
