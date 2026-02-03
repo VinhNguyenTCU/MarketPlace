@@ -21,17 +21,11 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Install dependencies API
-        run: yarn install --prefix=apps/api
-
       - name: Build API
-        run: yarn build:api
+        run: yarn workspace api run build
 
       - name: Test API
-        run: yarn test
-
-      - name: Install dependencies WEB
-        run: yarn install --prefix=apps/web
+        run: yarn workspace api run test
 
       - name: Build WEB
-        run: yarn build:web
+        run: yarn workspace web run build
