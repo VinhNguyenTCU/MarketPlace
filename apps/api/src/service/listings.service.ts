@@ -1,4 +1,3 @@
-import type { PostgrestError} from '@supabase/supabase-js';
 import { ListingsRepository } from '../repository/listings.repository.js';
 import type { ServiceOk, ServiceErr } from '../types/service.js';
 import type { Listing } from '../types/listings.js';
@@ -11,8 +10,8 @@ export class ListingsService {
         try {
             const data = await this.repo.getAllListings(accessToken);
             return { ok: true, data };
-        } catch (error : PostgrestError) {
-            return { ok: false, status: 400, error: error. };
+        } catch (error : any) {
+            return { ok: false, status: 400, error: error.message };
         }
     }
 
@@ -20,7 +19,7 @@ export class ListingsService {
         try {
             const data = await this.repo.getListingById(accessToken, listingId);
             return { ok: true, data };
-        } catch (error: PostgrestError) {
+        } catch (error: any) {
             return { ok: false, status: 400, error: error.message };
         }
     }
@@ -29,7 +28,7 @@ export class ListingsService {
         try {
             const data = await this.repo.getListingsByCategory(accessToken, category_id);
             return { ok: true, data };
-        } catch (error: PostgrestError ) {
+        } catch (error: any) {
             return { ok: false, status: 400, error: error.message };
         }
     }
@@ -38,7 +37,7 @@ export class ListingsService {
         try {
             const data = await this.repo.getListingsByStatus(accessToken, status);
             return { ok: true, data };
-        } catch (error: PostgrestError ) {
+        } catch (error: any) {
             return { ok: false, status: 400, error: error.message };
         }
     }
@@ -47,7 +46,7 @@ export class ListingsService {
         try {
             const data = await this.repo.createListing(accessToken, listingData);
             return { ok: true, data };
-        } catch (error: PostgrestError ) {
+        } catch (error: any) {
             return { ok: false, status: 400, error: error.message };
         }
     }
@@ -57,7 +56,7 @@ export class ListingsService {
         try {
             const data = await this.repo.getListingsByUser(userId);
             return { ok: true, data };
-        } catch (error: PostgrestError ) {
+        } catch (error: any) {
             return { ok: false, status: 400, error: error.message };
         }
     }
