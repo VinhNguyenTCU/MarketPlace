@@ -100,7 +100,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     vi.clearAllMocks();
   });
 
-  it("getAllListings returns the envelope on success", async () => {
+  it("getAllListings returns data on success", async () => {
     const envelope = {
       data: [baseListing],
       error: null,
@@ -121,7 +121,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     expect(res).toEqual(envelope);
   });
 
-  it("getAllListings throws when envelope.error is set", async () => {
+  it("getAllListings throws an error", async () => {
     const envelope = {
       data: null,
       error: pgError("db error"),
@@ -138,7 +138,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     await expect(repo.getAllListings("token123")).rejects.toThrow("db error");
   });
 
-  it("getListingById returns the envelope on success", async () => {
+  it("getListingById returns the data on success", async () => {
     const envelope = {
       data: baseListing,
       error: null,
@@ -159,7 +159,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     expect(res).toEqual(envelope);
   });
 
-  it("getListingById throws when envelope.error is set", async () => {
+  it("getListingById throws an error", async () => {
     const envelope = {
       data: null,
       error: pgError("not found"),
@@ -178,7 +178,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     );
   });
 
-  it("getListingsByCategory returns the envelope on success", async () => {
+  it("getListingsByCategory returns data on success", async () => {
     const envelope = {
       data: [{ ...baseListing, id: "l2", category_id: "cat1" }],
       error: null,
@@ -199,7 +199,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     expect(res).toEqual(envelope);
   });
 
-  it("getListingsByStatus throws when envelope.error is set", async () => {
+  it("getListingsByStatus throws an error", async () => {
     const envelope = {
       data: null,
       error: pgError("status error"),
@@ -218,7 +218,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     );
   });
 
-  it("createListing returns the envelope on success (insert().select().single())", async () => {
+  it("createListing returns the data on success (insert().select().single())", async () => {
     const envelope = {
       data: { ...baseListing, id: "l3" },
       error: null,
@@ -258,7 +258,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     );
   });
 
-  it("getListingsByUser uses admin client and returns the envelope", async () => {
+  it("getListingsByUser (admin) returns correct data", async () => {
     const envelope = {
       data: [{ ...baseListing, id: "l4", seller_id: "user1" }],
       error: null,
@@ -279,7 +279,7 @@ describe("ListingsRepository (envelope-returning)", () => {
     expect(res).toEqual(envelope);
   });
 
-  it("getListingsByUser throws when envelope.error is set", async () => {
+  it("getListingsByUser (admin) throws an error", async () => {
     const envelope = {
       data: null,
       error: pgError("admin query failed"),
