@@ -1,9 +1,19 @@
 {
   "name": "marketplace",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "dev:web": "npm run dev -w apps/web",
-    "dev:api": "npm run dev -w apps/api",
-    "dev": "npm run dev:web"
+    "dev:web": "yarn workspace web run dev",
+    "dev:api": "yarn workspace api run dev",
+    "dev": "concurrently -k --names web,api -c auto \"yarn workspace web run dev\" \"yarn workspace api run dev\"",
+    "test": "yarn workspace api run test",
+    "build:web": "yarn workspace web run build",
+    "build:api": "yarn workspace api run build",
+    "build": "yarn build:web && yarn build:api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
