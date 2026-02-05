@@ -1,11 +1,24 @@
 import { getSupabaseAnon, getSupabaseAdmin } from "../supabase/client.js";
-import type { Listing } from "../types/listings.js";
 import "dotenv/config";
 
 import type {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
+
+type Listing = {
+    id: string;
+    seller_id: string;
+    title: string;
+    description: string;
+    category_id: string;
+    condition_id: string;
+    price: string;
+    is_free: boolean;
+    status: string;
+    location: string;
+    created_at: string;
+}
 
 export class ListingsRepository {
   private asUser(accessToken: string) {
