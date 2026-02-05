@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import type { Request, Response } from "express";
-import { requireAuth } from "../modules/auth/requireAuth.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Request, Response, NextFunction } from "express";
+import { requireAuth } from "../middleware/requireAuth.js";
 
 vi.mock("../supabase/client.js", () => ({
   supabaseAnon: {
@@ -18,10 +18,14 @@ function mockRes() {
 }
 
 describe("requireAuth middleware", () => {
-  it("returns 401 if no Authorization header", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("401 if Authorization header missing", async () => {
     const req = { headers: {} } as Request;
     const res = mockRes();
-    const next = vi.fn();
+    const next = vi.fn() as unknown as NextFunction;
 
     await requireAuth(req, res, next);
 
@@ -29,19 +33,35 @@ describe("requireAuth middleware", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("calls next and sets req.user for valid token", async () => {
+  it("401 if token invalid", async () => {
     (supabaseAnon.auth.getUser as any).mockResolvedValue({
-      data: { user: { id: "u1", email: "e@tcu.edu" } },
-      error: null,
+      data: { user: null },
+      error: { message: "bad token" },
     });
 
-    const req = { headers: { authorization: "Bearer token" } } as any as Request;
+    const req = { headers: { authorization: "Bearer bad" } } as any as Request;
     const res = mockRes();
-    const next = vi.fn();
+    const next = vi.fn() as unknown as NextFunction;
 
     await requireAuth(req, res, next);
 
-    expect(req.user!.id).toBe("u1");
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("calls next + sets req.user when token valid", async () => {
+    (supabaseAnon.auth.getUser as any).mockResolvedValue({
+      data: { user: { id: "u1", email: "ok@tcu.edu" } },
+      error: null,
+    });
+
+    const req = { headers: { authorization: "Bearer good" } } as any as Request;
+    const res = mockRes();
+    const next = vi.fn() as unknown as NextFunction;
+
+    await requireAuth(req, res, next);
+
+    expect(req.user?.id).toBe("u1");
     expect(next).toHaveBeenCalled();
   });
 });
