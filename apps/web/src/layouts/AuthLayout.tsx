@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { Link, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { AuthNavbar } from '../components/common/AuthNavbar';
 
 export function AuthLayout() {
