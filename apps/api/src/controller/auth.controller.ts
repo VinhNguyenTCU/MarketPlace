@@ -5,10 +5,10 @@ export class AuthController {
   private service = new AuthService();
 
   signup = async (req: Request, res: Response) => {
-    const { email, password } = req.body ?? {};
+    const { email, password, fullName } = req.body ?? {};
     if (!email || !password) return res.status(400).json({ error: "email and password required" });
 
-    const result = await this.service.signup(email, password);
+    const result = await this.service.signup(email, password, fullName);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
 
     return res.json(result.data);

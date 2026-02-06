@@ -1,8 +1,17 @@
 import { supabaseAnon } from "../supabase/client.js";
 
 export class AuthService {
-  async signup(email: string, password: string) {
-    const { data, error } = await supabaseAnon.auth.signUp({ email, password });
+  async signup(email: string, password: string, fullName: string) {
+    const { data, error } = await supabaseAnon.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${process.env.FRONTEND_URL}/sign-in`,
+        data: {
+          full_name: String(fullName).trim(),
+        },
+      },
+    });
     if (error) return { ok: false as const, status: 400, error: error.message };
 
     return {

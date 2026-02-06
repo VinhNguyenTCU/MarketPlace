@@ -31,23 +31,32 @@ describe("Auth routes", () => {
     expect(res.body.error).toMatch(/email and password required/i);
   });
 
-  it("POST /auth/signup -> 200 on success", async () => {
+  it("POST /auth/signup -> 200 on success (includes fullName options)", async () => {
+    process.env.FRONTEND_URL = "https://test.app";
+  
     (supabaseAnon.auth.signUp as any).mockResolvedValue({
-      data: { user: { id: "u1", email: "test@tcu.edu" }, session: { access_token: "token" } },
+      data: { user: { id: "u1", email: "test@tcu.edu" }, session: null },
       error: null,
     });
-
+  
     const res = await request(app)
       .post("/auth/signup")
-      .send({ email: "test@tcu.edu", password: "Password123!" });
-
+      .send({ email: "test@tcu.edu", password: "Password123!", fullName: "test" });
+  
     expect(res.status).toBe(200);
+  
     expect(supabaseAnon.auth.signUp).toHaveBeenCalledWith({
       email: "test@tcu.edu",
       password: "Password123!",
+      options: {
+        emailRedirectTo: "https://test.app/sign-in",
+        data: { full_name: "test" },
+      },
     });
+  
     expect(res.body.user.email).toBe("test@tcu.edu");
   });
+  
 
   it("POST /auth/signin -> 401 when invalid credentials", async () => {
     (supabaseAnon.auth.signInWithPassword as any).mockResolvedValue({
