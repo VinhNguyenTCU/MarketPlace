@@ -56,3 +56,13 @@ jobs:
               // ignore if label isn't present
               if (e.status !== 404) throw e
             }
+      - name: Add 'APPROVED' label
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['APPROVED'],
+            })
