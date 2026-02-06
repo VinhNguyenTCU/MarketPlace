@@ -1,0 +1,47 @@
+name: apply-pending-review-label
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  label-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Add 'PENDING REVIEW' label
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['PENDING REVIEW'],
+            })
+
+  remove-label:
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Remove 'PENDING REVIEW' label
+        uses: actions/github-script@v6
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'PENDING REVIEW',
+              })
+            } catch (e) {
+              // ignore if label isn't present
+              if (e.status !== 404) throw e
+            }
