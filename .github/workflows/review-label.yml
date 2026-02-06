@@ -6,12 +6,20 @@ on:
   pull_request_review:
     types: [submitted]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   label-pr:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       issues: write
+      pull-requests: write
+
     steps:
       - name: Add 'PENDING REVIEW' label
         uses: actions/github-script@v6
@@ -28,7 +36,10 @@ jobs:
     if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       issues: write
+      pull-requests: write
+
     steps:
       - name: Remove 'PENDING REVIEW' label
         uses: actions/github-script@v6
