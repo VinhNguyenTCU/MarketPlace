@@ -28,7 +28,7 @@ export const supabaseAnon = createClient(supabaseUrl, anonKey, {
  * Supabase client scoped to a user via their access token.
  * Use this for any requests that need to be made on behalf of a logged-in user.
  */
-export const getSupabaseAnon = (accessToken: string) => {
+export const getSupabaseUser = (accessToken: string) => {
   if (!accessToken) throw new Error("accessToken is required for user-scoped client");
 
   return createClient(supabaseUrl, anonKey, {
