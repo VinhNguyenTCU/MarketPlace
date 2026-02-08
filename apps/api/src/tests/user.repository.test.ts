@@ -1,13 +1,13 @@
 import { vi, describe, beforeEach, expect, it } from "vitest";
 import { UserRepository } from "../repository/user.repository.js";
 import { UserStatus } from "../enums/user.status.enum.js";
-import { getSupabaseAdminClient, getSupabaseUserClient } from "../supabase/client.js";
+import { getSupabaseAdmin, getSupabaseUser } from "../supabase/client.js";
 
 // mock the module that exports these functions
 vi.mock("../supabase/client.js", () => {
   return {
-    getSupabaseUserClient: vi.fn(),
-    getSupabaseAdminClient: vi.fn()
+    getSupabaseUser: vi.fn(),
+    getSupabaseAdmin: vi.fn()
   }
 })
 
@@ -67,12 +67,12 @@ describe("UserRepository.searchUsersByNameAsUser", () => {
   it("returns [] when name is blank after trim", async () => {
     const accessToken = "t";
     // even if client exists, it should return early
-    (getSupabaseUserClient as any).mockReturnValue(makeUserClient({ authUserId: "u1" }));
+    (getSupabaseUser as any).mockReturnValue(makeUserClient({ authUserId: "u1" }));
 
     const res = await repo.searchUsersByNameAsUser(accessToken, "   ");
     expect(res).toEqual([]);
     // should not query DB
-    expect(getSupabaseUserClient).not.toHaveBeenCalled();
+    expect(getSupabaseUser).not.toHaveBeenCalled();
   });
 
   it("builds correct query and returns results", async () => {
@@ -84,7 +84,7 @@ describe("UserRepository.searchUsersByNameAsUser", () => {
       fromResult: { data: rows, error: null },
     });
 
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     const res = await repo.searchUsersByNameAsUser(accessToken, "vin", 5);
 
@@ -103,7 +103,7 @@ describe("UserRepository.searchUsersByNameAsUser", () => {
       authUserId: "u1",
       fromResult: { data: null, error: { message: "db down" } },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     await expect(repo.searchUsersByNameAsUser("t", "vin")).rejects.toThrow("db down");
   });
@@ -114,7 +114,7 @@ describe("UserRepository.searchUsersByEmailAsUser", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns [] when email is blank", async () => {
-    (getSupabaseUserClient as any).mockReturnValue(makeUserClient({ authUserId: "u1" }));
+    (getSupabaseUser as any).mockReturnValue(makeUserClient({ authUserId: "u1" }));
     const res = await repo.searchUsersByEmailAsUser("t", "   ");
     expect(res).toEqual([]);
   });
@@ -122,7 +122,7 @@ describe("UserRepository.searchUsersByEmailAsUser", () => {
   it("queries by email ilike and returns results", async () => {
     const rows = [{ full_name: "Vinh", email: "vinh@tcu.edu" }];
     const client = makeUserClient({ authUserId: "u1", fromResult: { data: rows, error: null } });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     const res = await repo.searchUsersByEmailAsUser("t", "vinh@tcu.edu", 10);
 
@@ -141,7 +141,7 @@ describe("UserRepository.selfDeleteAccountAsUser", () => {
       authUserId: "self-123",
       fromResult: { data: null, error: null },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     const res = await repo.selfDeleteAccountAsUser("t");
 
@@ -154,7 +154,7 @@ describe("UserRepository.selfDeleteAccountAsUser", () => {
 
   it("throws if not authenticated", async () => {
     const client = makeUserClient({ authError: { message: "Invalid token" } });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     await expect(repo.selfDeleteAccountAsUser("t")).rejects.toThrow("Invalid token");
   });
@@ -164,7 +164,7 @@ describe("UserRepository.selfDeleteAccountAsUser", () => {
       authUserId: "self-123",
       fromResult: { error: { message: "update failed" } },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     await expect(repo.selfDeleteAccountAsUser("t")).rejects.toThrow("update failed");
   });
@@ -181,7 +181,7 @@ describe("UserRepository.getSelfByTokenAsUser", () => {
       authUserId: "self-1",
       fromResult: { data: userRow, error: null },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     const res = await repo.getSelfByTokenAsUser("t");
 
@@ -203,7 +203,7 @@ describe("UserRepository.updateSelfByTokenAsUser", () => {
       authUserId: "self-1",
       fromResult: { data: updated, error: null },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     const patch: any = { full_name: undefined, email: "a@b.com" };
 
@@ -226,7 +226,7 @@ describe("UserRepository.updateSelfByTokenAsUser", () => {
       authUserId: "self-1",
       fromResult: { data: updated, error: null },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     await repo.updateSelfByTokenAsUser("t", { email: "x@y.com" } as any);
 
@@ -245,7 +245,7 @@ describe("UserRepository.updateSelfByTokenAsUser", () => {
       authUserId: "self-1",
       fromResult: { data: updated, error: null },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     const patch: any = { full_name: undefined, email: "a@b.com" };
 
@@ -268,7 +268,7 @@ describe("UserRepository.updateSelfByTokenAsUser", () => {
       authUserId: "self-1",
       fromResult: { data: updated, error: null },
     });
-    (getSupabaseUserClient as any).mockReturnValue(client);
+    (getSupabaseUser as any).mockReturnValue(client);
 
     await repo.updateSelfByTokenAsUser("t", { email: "x@y.com" } as any);
 
@@ -282,7 +282,7 @@ describe("UserRepository.softDeleteUserAsAdmin", () => {
 
   it("soft deletes user as admin", async () => {
     const admin = makeAdminClient({ data: null, error: null });
-    (getSupabaseAdminClient as any).mockReturnValue(admin);
+    (getSupabaseAdmin as any).mockReturnValue(admin);
 
     const res = await repo.softDeleteUserAsAdmin("u-99");
 
@@ -294,7 +294,7 @@ describe("UserRepository.softDeleteUserAsAdmin", () => {
 
   it("throws on admin delete error", async () => {
     const admin = makeAdminClient({ error: { message: "no permission" } });
-    (getSupabaseAdminClient as any).mockReturnValue(admin);
+    (getSupabaseAdmin as any).mockReturnValue(admin);
 
     await expect(repo.softDeleteUserAsAdmin("u-99")).rejects.toThrow("no permission");
   });

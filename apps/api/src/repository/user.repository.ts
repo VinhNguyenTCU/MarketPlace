@@ -1,7 +1,7 @@
 import { UserStatus } from "../enums/user.status.enum.js";
 import {
-    getSupabaseAdminClient,
-    getSupabaseUserClient,
+    getSupabaseAdmin,
+    getSupabaseUser,
 } from "../supabase/client.js";
 import type {
     User,
@@ -13,7 +13,7 @@ import type {
 export class UserRepository {
     // ------ User scope -------
     private asUser(accessToken: string) {
-        return getSupabaseUserClient(accessToken);
+        return getSupabaseUser(accessToken);
     }
 
     private async requireSelfId(accessToken: string): Promise<string> {
@@ -121,7 +121,7 @@ export class UserRepository {
     // ------ Admin scope -------
 
     async softDeleteUserAsAdmin(userId: string): Promise<{ deleted: true }> {
-        const supabase = getSupabaseAdminClient();
+        const supabase = getSupabaseAdmin();
 
         const { error } = await supabase
             .from("users")
