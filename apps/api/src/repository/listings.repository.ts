@@ -1,4 +1,4 @@
-import { getSupabaseAnon, getSupabaseAdmin } from "../supabase/client.js";
+import { getSupabaseUser, getSupabaseAdmin } from "../supabase/client.js";
 import "dotenv/config";
 
 import type {
@@ -22,7 +22,7 @@ type Listing = {
 
 export class ListingsRepository {
   private asUser(accessToken: string) {
-    return getSupabaseAnon(accessToken);
+    return getSupabaseUser(accessToken);
   }
 
   async getAllListings(accessToken: string): Promise<PostgrestResponse<Listing>> {
