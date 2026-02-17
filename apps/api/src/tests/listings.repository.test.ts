@@ -1,300 +1,228 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ListingsRepository } from "../repository/listings.repository.js";
+import { listingsRepository } from "../repository/listings.repository.js";
+import { ListingStatus } from "../types/listing.js";
 
-// Mock supabase client factory fns
-vi.mock("../supabase/client.js", () => {
-  return {
-    getSupabaseAnon: vi.fn(),
-    getSupabaseAdmin: vi.fn(),
+const { userFrom, adminFrom, anonFrom } = vi.hoisted(() => ({
+  userFrom: vi.fn(),
+  adminFrom: vi.fn(),
+  anonFrom: vi.fn(),
+}));
+
+vi.mock("../supabase/client.js", () => ({
+  getSupabaseUserClient: vi.fn(() => ({ from: userFrom })),
+  getSupabaseAdminClient: vi.fn(() => ({ from: adminFrom })),
+  getSupabaseAnonClient: vi.fn(() => ({ from: anonFrom })),
+}));
+
+import {
+  getSupabaseUserClient,
+  getSupabaseAdminClient,
+  getSupabaseAnonClient,
+} from "../supabase/client.js";
+
+function makeQueryBuilder(result: { data?: any; error?: any } = {}) {
+  const builder: any = {
+    data: result.data ?? null,
+    error: result.error ?? null,
   };
-});
 
-import { getSupabaseAnon, getSupabaseAdmin } from "../supabase/client.js";
+  builder.select = vi.fn(() => builder);
+  builder.eq = vi.fn(() => builder);
+  builder.single = vi.fn(() => builder);
+  builder.insert = vi.fn(() => builder);
+  builder.update = vi.fn(() => builder);
+  builder.delete = vi.fn(() => builder);
+  builder.or = vi.fn(() => builder);
+  builder.order = vi.fn(() => builder);
+  builder.range = vi.fn(() => builder);
+  builder.gte = vi.fn(() => builder);
+  builder.lte = vi.fn(() => builder);
+  builder.limit = vi.fn(() => builder);
 
-type PgEnvelope = {
-  data: any;
-  error: any;
-  status?: number;
-  statusText?: string;
-  count?: any;
-};
-
-type SupabaseHandlers = {
-  // select("*") directly returns envelope
-  select?: () => Promise<PgEnvelope>;
-
-  // select("*").eq(...).single() returns envelope
-  selectEqSingle?: () => Promise<PgEnvelope>;
-
-  // select("*").eq(...) returns envelope (array)
-  selectEq?: () => Promise<PgEnvelope>;
-
-  // insert(data).select("*").single() returns envelope
-  insertSelectSingle?: () => Promise<PgEnvelope>;
-};
-
-function buildSupabaseMock(handlers: SupabaseHandlers) {
-  const from = vi.fn((_table: string) => {
-    const select = vi.fn((_cols: string) => {
-      // Case 1: direct select
-      if (handlers.select) return handlers.select();
-
-      // Case 2: select -> eq -> single OR eq
-      return {
-        eq: vi.fn((_col: string, _val: string) => {
-          if (handlers.selectEqSingle) {
-            return { single: vi.fn(() => handlers.selectEqSingle!()) };
-          }
-          if (handlers.selectEq) {
-            return handlers.selectEq!();
-          }
-          return undefined;
-        }),
-      };
-    });
-
-    const insert = vi.fn((_data: any) => {
-      // Must support insert().select().single()
-      return {
-        select: vi.fn((_cols: string) => {
-          if (handlers.insertSelectSingle) {
-            return { single: vi.fn(() => handlers.insertSelectSingle!()) };
-          }
-          return undefined;
-        }),
-      };
-    });
-
-    return { select, insert };
-  });
-
-  return { from } as any;
+  return builder;
 }
 
-const pgError = (message: string) => ({
-  name: "PostgrestError",
-  message,
-  details: null,
-  hint: null,
-  code: "X",
-});
-
-describe("ListingsRepository (envelope-returning)", () => {
-  const repo = new ListingsRepository();
-
-  const baseListing = {
-    id: "l1",
-    seller_id: "u1",
-    title: "Title",
-    description: "Desc",
-    category_id: "c1",
-    condition_id: "cond1",
-    price: "10.00",
-    is_free: false,
-    status: "active",
-    location: "Fort Worth, TX",
-    created_at: "2026-02-03T00:00:00Z",
-  };
-
+describe("listingsRepository", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("getAllListings returns data on success", async () => {
-    const envelope = {
-      data: [baseListing],
-      error: null,
-      status: 200,
-      statusText: "OK",
-    };
+  it("getAllListingsFromSelf returns response and queries listings", async () => {
+    const builder = makeQueryBuilder({ data: [{ id: "l1" }], error: null });
+    userFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      select: async () => envelope,
-    });
+    const res = await listingsRepository.getAllListingsFromSelf("token");
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
-
-    const res = await repo.getAllListings("token123");
-
-    expect(getSupabaseAnon).toHaveBeenCalledWith("token123");
-    expect(supabase.from).toHaveBeenCalledWith("listings");
-    expect(res).toEqual(envelope);
+    expect(getSupabaseUserClient).toHaveBeenCalledWith("token");
+    expect(userFrom).toHaveBeenCalledWith("listings");
+    expect(builder.select).toHaveBeenCalledWith("*");
+    expect(res.data?.[0]?.id).toBe("l1");
   });
 
-  it("getAllListings throws an error", async () => {
-    const envelope = {
-      data: null,
-      error: pgError("db error"),
-      status: 400,
-      statusText: "Bad Request",
-    };
+  it("getListingById throws on error", async () => {
+    const builder = makeQueryBuilder({ error: new Error("bad") });
+    userFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      select: async () => envelope,
-    });
+    await expect(
+      listingsRepository.getListingById("token", "listing-1"),
+    ).rejects.toThrow("bad");
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
-
-    await expect(repo.getAllListings("token123")).rejects.toThrow("db error");
+    expect(builder.eq).toHaveBeenCalledWith("id", "listing-1");
+    expect(builder.single).toHaveBeenCalled();
   });
 
-  it("getListingById returns the data on success", async () => {
-    const envelope = {
-      data: baseListing,
-      error: null,
-      status: 200,
-      statusText: "OK",
-    };
+  it("searchListings validates query/offset/limit/price", async () => {
+    await expect(
+      listingsRepository.searchListings("token", { query: "   " }),
+    ).rejects.toThrow(/query field cannot be empty/i);
 
-    const supabase = buildSupabaseMock({
-      selectEqSingle: async () => envelope,
-    });
+    await expect(
+      listingsRepository.searchListings("token", { query: "ok", offset: -1 }),
+    ).rejects.toThrow(/offset must be/i);
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
+    await expect(
+      listingsRepository.searchListings("token", { query: "ok", limit: 0 }),
+    ).rejects.toThrow(/limit must be/i);
 
-    const res = await repo.getListingById("token123", "l1");
+    await expect(
+      listingsRepository.searchListings("token", { query: "ok", limit: 101 }),
+    ).rejects.toThrow(/limit must be/i);
 
-    expect(getSupabaseAnon).toHaveBeenCalledWith("token123");
-    expect(supabase.from).toHaveBeenCalledWith("listings");
-    expect(res).toEqual(envelope);
+    await expect(
+      listingsRepository.searchListings("token", { query: "ok", minPrice: NaN }),
+    ).rejects.toThrow(/minPrice is invalid/i);
+
+    await expect(
+      listingsRepository.searchListings("token", { query: "ok", maxPrice: NaN }),
+    ).rejects.toThrow(/maxPrice is invalid/i);
+
+    await expect(
+      listingsRepository.searchListings("token", {
+        query: "ok",
+        minPrice: 10,
+        maxPrice: 5,
+      }),
+    ).rejects.toThrow(/minPrice cannot be greater/i);
   });
 
-  it("getListingById throws an error", async () => {
-    const envelope = {
-      data: null,
-      error: pgError("not found"),
-      status: 406,
-      statusText: "Not Acceptable",
-    };
+  it("searchListings builds query with filters and range", async () => {
+    const builder = makeQueryBuilder({ data: [], error: null });
+    userFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      selectEqSingle: async () => envelope,
+    const res = await listingsRepository.searchListings("token", {
+      query: " phone ",
+      categoryId: "cat1",
+      conditionId: "cond1",
+      status: ListingStatus.ACTIVE,
+      isFree: false,
+      minPrice: 10,
+      maxPrice: 100,
+      offset: 5,
+      limit: 10,
     });
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
-
-    await expect(repo.getListingById("token123", "missing")).rejects.toThrow(
-      "not found"
+    expect(getSupabaseUserClient).toHaveBeenCalledWith("token");
+    expect(builder.select).toHaveBeenCalledWith("*", { count: "exact" });
+    expect(builder.or).toHaveBeenCalledWith(
+      "title.ilike.%phone%,description.ilike.%phone%",
     );
+    expect(builder.order).toHaveBeenCalledWith("created_at", { ascending: false });
+    expect(builder.range).toHaveBeenCalledWith(5, 14);
+    expect(builder.eq).toHaveBeenCalledWith("category_id", "cat1");
+    expect(builder.eq).toHaveBeenCalledWith("condition_id", "cond1");
+    expect(builder.eq).toHaveBeenCalledWith("status", ListingStatus.ACTIVE);
+    expect(builder.eq).toHaveBeenCalledWith("is_free", false);
+    expect(builder.gte).toHaveBeenCalledWith("price", 10);
+    expect(builder.lte).toHaveBeenCalledWith("price", 100);
+    expect(res.error).toBeNull();
   });
 
-  it("getListingsByCategory returns data on success", async () => {
-    const envelope = {
-      data: [{ ...baseListing, id: "l2", category_id: "cat1" }],
-      error: null,
-      status: 200,
-      statusText: "OK",
-    };
+  it("getListingsByCategoryId and getListingsByCondition and getListingsByStatus", async () => {
+    const builder = makeQueryBuilder({ data: [], error: null });
+    userFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      selectEq: async () => envelope,
-    });
+    await listingsRepository.getListingsByCategoryId("token", "cat1");
+    expect(builder.eq).toHaveBeenCalledWith("listings.category_id", "cat1");
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
+    await listingsRepository.getListingsByCondition("token", "good");
+    expect(builder.select).toHaveBeenCalledWith("*, conditions!inner(id, name)");
+    expect(builder.eq).toHaveBeenCalledWith("conditions.bname", "good");
 
-    const res = await repo.getListingsByCategory("token123", "cat1");
-
-    expect(getSupabaseAnon).toHaveBeenCalledWith("token123");
-    expect(supabase.from).toHaveBeenCalledWith("listings");
-    expect(res).toEqual(envelope);
+    await listingsRepository.getListingsByStatus("token", ListingStatus.SOLD);
+    expect(builder.eq).toHaveBeenCalledWith("status", ListingStatus.SOLD);
   });
 
-  it("getListingsByStatus throws an error", async () => {
-    const envelope = {
-      data: null,
-      error: pgError("status error"),
-      status: 400,
-      statusText: "Bad Request",
-    };
+  it("createListing inserts and returns record", async () => {
+    const builder = makeQueryBuilder({ data: { id: "l1" }, error: null });
+    userFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      selectEq: async () => envelope,
-    });
+    const res = await listingsRepository.createListing("token", { title: "t" });
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
-
-    await expect(repo.getListingsByStatus("token123", "sold")).rejects.toThrow(
-      "status error"
-    );
+    expect(builder.insert).toHaveBeenCalledWith({ title: "t" });
+    expect(builder.select).toHaveBeenCalledWith("*");
+    expect(builder.single).toHaveBeenCalled();
+    expect(res.data?.id).toBe("l1");
   });
 
-  it("createListing returns the data on success (insert().select().single())", async () => {
-    const envelope = {
-      data: { ...baseListing, id: "l3" },
-      error: null,
-      status: 201,
-      statusText: "Created",
-    };
-
-    const supabase = buildSupabaseMock({
-      insertSelectSingle: async () => envelope,
-    });
-
-    (getSupabaseAnon as any).mockReturnValue(supabase);
-
-    const res = await repo.createListing("token123", { title: "New" });
-
-    expect(getSupabaseAnon).toHaveBeenCalledWith("token123");
-    expect(supabase.from).toHaveBeenCalledWith("listings");
-    expect(res).toEqual(envelope);
+  it("updateListing throws when no fields provided", async () => {
+    await expect(
+      listingsRepository.updateListing("token", "id1", {}),
+    ).rejects.toThrow(/no valid fields/i);
   });
 
-  it("createListing throws when envelope.error is set", async () => {
-    const envelope = {
-      data: null,
-      error: pgError("insert error"),
-      status: 400,
-      statusText: "Bad Request",
-    };
+  it("updateListing checks current price when price provided", async () => {
+    const currentBuilder = makeQueryBuilder({ data: { price: 10 }, error: null });
+    const updateBuilder = makeQueryBuilder({ data: { id: "l1" }, error: null });
+    userFrom
+      .mockImplementationOnce(() => currentBuilder)
+      .mockImplementationOnce(() => updateBuilder);
 
-    const supabase = buildSupabaseMock({
-      insertSelectSingle: async () => envelope,
-    });
+    const res = await listingsRepository.updateListing("token", "id1", { price: 5 });
 
-    (getSupabaseAnon as any).mockReturnValue(supabase);
-
-    await expect(repo.createListing("token123", { title: "New" })).rejects.toThrow(
-      "insert error"
-    );
+    expect(currentBuilder.select).toHaveBeenCalledWith("price");
+    expect(currentBuilder.eq).toHaveBeenCalledWith("id", "id1");
+    expect(currentBuilder.single).toHaveBeenCalled();
+    expect(updateBuilder.update).toHaveBeenCalledWith({ price: 5 });
+    expect(updateBuilder.eq).toHaveBeenCalledWith("id", "id1");
+    expect(updateBuilder.single).toHaveBeenCalled();
+    expect(res.data?.id).toBe("l1");
   });
 
-  it("getListingsByUser (admin) returns correct data", async () => {
-    const envelope = {
-      data: [{ ...baseListing, id: "l4", seller_id: "user1" }],
-      error: null,
-      status: 200,
-      statusText: "OK",
-    };
+  it("deleteListing deletes and returns id", async () => {
+    const builder = makeQueryBuilder({ data: { id: "l1" }, error: null });
+    userFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      selectEq: async () => envelope,
-    });
+    const res = await listingsRepository.deleteListing("token", "l1");
 
-    (getSupabaseAdmin as any).mockReturnValue(supabase);
-
-    const res = await repo.getListingsByUser("user1");
-
-    expect(getSupabaseAdmin).toHaveBeenCalled();
-    expect(supabase.from).toHaveBeenCalledWith("listings");
-    expect(res).toEqual(envelope);
+    expect(builder.delete).toHaveBeenCalled();
+    expect(builder.eq).toHaveBeenCalledWith("id", "l1");
+    expect(builder.select).toHaveBeenCalledWith("id");
+    expect(builder.single).toHaveBeenCalled();
+    expect(res.data?.id).toBe("l1");
   });
 
-  it("getListingsByUser (admin) throws an error", async () => {
-    const envelope = {
-      data: null,
-      error: pgError("admin query failed"),
-      status: 403,
-      statusText: "Forbidden",
-    };
+  it("getMostRecent uses anon client and limits 20", async () => {
+    const builder = makeQueryBuilder({ data: [], error: null });
+    anonFrom.mockReturnValue(builder);
 
-    const supabase = buildSupabaseMock({
-      selectEq: async () => envelope,
-    });
+    const res = await listingsRepository.getMostRecent();
 
-    (getSupabaseAdmin as any).mockReturnValue(supabase);
+    expect(getSupabaseAnonClient).toHaveBeenCalled();
+    expect(anonFrom).toHaveBeenCalledWith("listings");
+    expect(builder.select).toHaveBeenCalledWith("*");
+    expect(builder.limit).toHaveBeenCalledWith(20);
+    expect(res.error).toBeNull();
+  });
 
-    await expect(repo.getListingsByUser("user1")).rejects.toThrow(
-      "admin query failed"
-    );
+  it("getListingsByUser uses admin client and filters seller_id", async () => {
+    const builder = makeQueryBuilder({ data: [], error: null });
+    adminFrom.mockReturnValue(builder);
+
+    const res = await listingsRepository.getListingsByUser("user1");
+
+    expect(getSupabaseAdminClient).toHaveBeenCalled();
+    expect(adminFrom).toHaveBeenCalledWith("listings");
+    expect(builder.eq).toHaveBeenCalledWith("seller_id", "user1");
+    expect(res.error).toBeNull();
   });
 });
