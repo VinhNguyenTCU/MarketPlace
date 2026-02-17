@@ -1,8 +1,8 @@
-import { supabaseAnon } from "../supabase/client.js";
+import { getSupabaseAnonClient } from "../supabase/client.js";
 
 export class AuthService {
   async signup(email: string, password: string) {
-    const { data, error } = await supabaseAnon.auth.signUp({ email, password });
+    const { data, error } = await getSupabaseAnonClient().auth.signUp({ email, password });
     if (error) return { ok: false as const, status: 400, error: error.message };
 
     return {
@@ -16,7 +16,7 @@ export class AuthService {
   }
 
   async signin(email: string, password: string) {
-    const { data, error } = await supabaseAnon.auth.signInWithPassword({ email, password });
+    const { data, error } = await getSupabaseAnonClient().auth.signInWithPassword({ email, password });
     if (error) return { ok: false as const, status: 401, error: error.message };
 
     return {
@@ -30,7 +30,7 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const { data, error } = await supabaseAnon.auth.refreshSession({ refresh_token: refreshToken });
+    const { data, error } = await getSupabaseAnonClient().auth.refreshSession({ refresh_token: refreshToken });
     if (error) return { ok: false as const, status: 401, error: error.message };
 
     return {

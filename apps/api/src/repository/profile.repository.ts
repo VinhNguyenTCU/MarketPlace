@@ -1,9 +1,9 @@
-import { getSupabaseAnon } from "../supabase/client.js";
+import { getSupabaseUserClient } from "../supabase/client.js";
 
 export class ProfileRepository {
 
   private asUser(accessToken: string) {
-    return getSupabaseAnon(accessToken);
+    return getSupabaseUserClient(accessToken);
   }
 
   async getMe(accessToken: string) {
