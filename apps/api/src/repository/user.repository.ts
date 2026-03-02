@@ -1,7 +1,8 @@
+import { ListingStatus } from "../enums/listing.status.enum.js";
 import { UserStatus } from "../enums/user.status.enum.js";
 import {
-    getSupabaseAdmin,
-    getSupabaseUser,
+    getSupabaseUserClient,
+    getSupabaseAdminClient,
 } from "../supabase/client.js";
 import type {
     User,
@@ -10,13 +11,19 @@ import type {
     PublicUser,
 } from "../types/user.js";
 
-export class UserRepository {
-    // ------ User scope -------
-    private asUser(accessToken: string) {
-        return getSupabaseUser(accessToken);
-    }
+const PUBLIC_USER_SELECT = "id, full_name, email, avatar_url, zip_code, campus_region, rating_avg, rating_count, phone_number";
 
-    private async requireSelfId(accessToken: string): Promise<string> {
+export const UserRepository = {
+    // ------ User scope -------
+    asUser(accessToken: string) {
+        return getSupabaseUserClient(accessToken);
+    },
+
+    /**
+    * Exposed so controller/service can call this ONCE per request
+    * and pass selfId around (avoid repeated auth calls).
+    */
+    async requireSelfId(accessToken: string): Promise<string> {
         const supabase = this.asUser(accessToken);
 
         const { data: authData, error: authErr } = await supabase.auth.getUser();
@@ -26,7 +33,7 @@ export class UserRepository {
         }
 
         return authData.user.id;
-    }
+    },
 
     async searchUsersByNameAsUser(accessToken: string, name: string, limit = 10): Promise<PublicUser[]> {
 
@@ -36,7 +43,7 @@ export class UserRepository {
         const supabase = this.asUser(accessToken);
         const { data, error } = await supabase
             .from("users")
-            .select("full_name, email, avatar_url, zip_code, campus_region, rating_avg, rating_count, phone_number")
+            .select(PUBLIC_USER_SELECT)
             .neq("status", UserStatus.DELETED) // hide deleted accounts
             .ilike("full_name", `%${query}%`)
             .order("full_name", { ascending: true })
@@ -44,7 +51,21 @@ export class UserRepository {
 
         if (error) throw new Error(error.message);
         return (data ?? []) as PublicUser[];
-    }
+    },
+
+    async getUserByIdAsUser(accessToken: string, userId: string): Promise<PublicUser> {
+        const supabase = this.asUser(accessToken);
+
+        const { data, error } = await supabase
+            .from("users")
+            .select(PUBLIC_USER_SELECT)
+            .eq("id", userId)
+            .neq("status", UserStatus.DELETED) // hide deleted accounts
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as PublicUser;
+    },
 
     async searchUsersByEmailAsUser(accessToken: string, email: string, limit = 10): Promise<PublicUser[]> {
         const query = email.trim();
@@ -62,21 +83,29 @@ export class UserRepository {
 
         if (error) throw new Error(error.message);
         return (data ?? []) as PublicUser[];
-    }
+    },
 
     async selfDeleteAccountAsUser(accessToken: string): Promise<{ deleted: true }> {
         const supabase = this.asUser(accessToken);
         const selfId = await this.requireSelfId(accessToken);
 
-        const { error } = await supabase
+        const { error: userErr } = await supabase
             .from("users")
             .update({ status: UserStatus.DELETED })
             .eq("id", selfId)
             .single();
 
-        if (error) throw new Error(error.message);
+        if (userErr) throw new Error(userErr.message);
+
+        const { error: listingErr } = await supabase
+            .from("listings")
+            .update({ status: ListingStatus.INACTIVE }) // hide their listings (but keep them for record-keeping)
+            .eq("owner_id", selfId);
+
+        if (listingErr) throw new Error(listingErr.message);
+
         return { deleted: true };
-    }
+    },
 
     async getSelfByTokenAsUser(accessToken: string): Promise<User> {
         const supabase = this.asUser(accessToken);
@@ -90,18 +119,21 @@ export class UserRepository {
 
         if (error) throw new Error(error.message);
         return data as User;
-    }
+    },
 
+    /**
+    * IMPORTANT: Do NOT allow updating email here.
+    * Email changes should go through Supabase Auth (verification + consistency).
+    */
     async updateSelfByTokenAsUser(
         accessToken: string,
         patch: UpdateUserInput,
     ): Promise<User> {
         const supabase = this.asUser(accessToken);
-        const userId = await this.requireSelfId(accessToken);
+        const selfId = await this.requireSelfId(accessToken);
 
         const update: UpdateUserInput = {};
         if ("full_name" in patch) update.full_name = patch.full_name ?? null;
-        if ("email" in patch) update.email = patch.email ?? null;
         if ("campus_region" in patch)
             update.campus_region = patch.campus_region ?? null;
         if ("phone_number" in patch)
@@ -111,26 +143,87 @@ export class UserRepository {
         const { data, error } = await supabase
             .from("users")
             .update(update)
+            .eq("id", selfId)
+            .select("*")
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data as User;
+    },
+
+    /**
+   * Email change flow via Supabase Auth.
+   * This keeps auth.users and your profile consistent.
+   *
+   * Note: Supabase may require email verification depending on your project settings.
+   */
+    async requestEmailChangeAsUser(
+        accessToken: string,
+        newEmail: string,
+    ): Promise<{ updated: true }> {
+        const supabase = this.asUser(accessToken);
+
+        const email = newEmail.trim();
+        if (!email) throw new Error("Email is required");
+
+        const { error } = await supabase.auth.updateUser({ email });
+        if (error) throw new Error(error.message);
+
+        return { updated: true };
+    }
+    ,
+    // ------ Admin scope -------
+    asAdmin() {
+        return getSupabaseAdminClient();
+    },
+
+    async getUserByIdAsAdmin(userId: string): Promise<User> {
+        const supabase = this.asAdmin();
+
+        const { data, error } = await supabase 
+            .from("users")
+            .select("*")
+            .eq("id", userId)
+            .single();
+        
+        if (error) throw new Error(error.message);
+        return data as User;
+    },
+
+    async updateUserByIdAsAdmin(userId: string, patch: AdminUpdateUserInput): Promise<User> {
+        const supabase = this.asAdmin();
+
+        const { data, error } = await supabase
+            .from("users")
+            .update(patch)
             .eq("id", userId)
             .select("*")
             .single();
 
         if (error) throw new Error(error.message);
         return data as User;
-    }
-    // ------ Admin scope -------
+    },
 
     async softDeleteUserAsAdmin(userId: string): Promise<{ deleted: true }> {
-        const supabase = getSupabaseAdmin();
+        const supabase = this.asAdmin();
 
-        const { error } = await supabase
+        const { error: userErr } = await supabase
             .from("users")
             .update({
                 status: UserStatus.DELETED,
             })
             .eq("id", userId)
             .single();
-        if (error) throw new Error(error.message);
+
+        if (userErr) throw new Error(userErr.message);
+            
+        // Also mark their listings as inactive (but keep them for record-keeping)
+        const { error: listingErr } = await supabase
+            .from("listings")
+            .update({ status: ListingStatus.INACTIVE })
+            .eq("owner_id", userId);
+        
+        if (listingErr) throw new Error(listingErr.message);
 
         return { deleted: true };
     }

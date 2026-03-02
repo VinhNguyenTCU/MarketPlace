@@ -29,7 +29,6 @@ export type PublicUser = {
 
 export type UpdateUserInput = {
     full_name?: string | null;
-    email?: string | null;
     campus_region?: string | null;
     avatar_url?: string | null;
     phone_number?: string | null;
