@@ -24,6 +24,9 @@ export const getSupabaseAnonClient = createClient(supabaseUrl, anonKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// Backward-compatible alias for older imports still using `supabaseAnon`.
+export const supabaseAnon = getSupabaseAnonClient;
+
 /**
  * Supabase client scoped to a user via their access token.
  * Use this for any requests that need to be made on behalf of a logged-in user.
