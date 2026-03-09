@@ -2,21 +2,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import { buildTestApp } from "./testApp.js";
 
-// Mock the supabase client module
-vi.mock("../supabase/client.js", () => {
-  return {
-    supabaseAnon: {
-      auth: {
-        signUp: vi.fn(),
-        signInWithPassword: vi.fn(),
-        getUser: vi.fn(),
-      },
-    },
-  };
-});
+const mockSignUp = vi.fn();
+const mockSignInWithPassword = vi.fn();
+const mockGetUser = vi.fn();
+
+const mockAnonClient = {
+  auth: {
+    signUp: mockSignUp,
+    signInWithPassword: mockSignInWithPassword,
+    getUser: mockGetUser,
+  },
+};
+
+vi.mock("../supabase/client.js", () => ({
+  getSupabaseAnonClient: vi.fn(() => mockAnonClient),
+}));
 
 // Import AFTER mocking
-import { supabaseAnon } from "../supabase/client.js";
+import { getSupabaseAnonClient } from "../supabase/client.js";
 
 describe("Auth routes", () => {
   const app = buildTestApp();
@@ -32,7 +35,7 @@ describe("Auth routes", () => {
   });
 
   it("POST /auth/signup -> 200 on success", async () => {
-    (supabaseAnon.auth.signUp as any).mockResolvedValue({
+    (getSupabaseAnonClient().auth.signUp as any).mockResolvedValue({
       data: { user: { id: "u1", email: "test@tcu.edu" }, session: { access_token: "token" } },
       error: null,
     });
@@ -42,7 +45,7 @@ describe("Auth routes", () => {
       .send({ email: "test@tcu.edu", password: "Password123!" });
 
     expect(res.status).toBe(200);
-    expect(supabaseAnon.auth.signUp).toHaveBeenCalledWith({
+    expect(getSupabaseAnonClient().auth.signUp).toHaveBeenCalledWith({
       email: "test@tcu.edu",
       password: "Password123!",
     });
@@ -50,7 +53,7 @@ describe("Auth routes", () => {
   });
 
   it("POST /auth/signin -> 401 when invalid credentials", async () => {
-    (supabaseAnon.auth.signInWithPassword as any).mockResolvedValue({
+    (getSupabaseAnonClient().auth.signInWithPassword as any).mockResolvedValue({
       data: { user: null, session: null },
       error: { message: "Invalid login credentials" },
     });
@@ -70,7 +73,7 @@ describe("Auth routes", () => {
   });
 
   it("GET /auth/me -> 200 when token valid", async () => {
-    (supabaseAnon.auth.getUser as any).mockResolvedValue({
+    (getSupabaseAnonClient().auth.getUser as any).mockResolvedValue({
       data: { user: { id: "u123", email: "ok@tcu.edu" } },
       error: null,
     });
