@@ -42,7 +42,7 @@ describe("Auth routes", () => {
   it("POST /auth/signup -> 400 when missing fields", async () => {
     const res = await request(app).post("/auth/signup").send({ email: "a@b.com" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/email and password required/i);
+    expect(res.body.error).toMatch(/email, password, and fullName are required/i);
   });
 
   it("POST /auth/signup -> 200 on success", async () => {

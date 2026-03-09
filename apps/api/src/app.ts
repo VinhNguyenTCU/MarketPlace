@@ -1,6 +1,5 @@
 import express from "express";
 import authRouter from "./routes/auth.router.js";
-import { profileRouter } from "./routes/profile.router.js";
 import cors from "cors";
 
 export const app = express();
