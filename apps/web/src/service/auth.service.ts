@@ -1,40 +1,7 @@
 // src/services/auth.service.ts
 import { supabase } from "../lib/supabase";
+import { apiFetch, getApiBaseUrl } from "../lib/api";
 
-function getApiBaseUrl() {
-  const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  if (!base) throw new Error("Missing VITE_API_BASE_URL in frontend .env");
-  return base.replace(/\/+$/, "");
-}
-
-async function apiFetch(path: string, init: RequestInit = {}) {
-  const base = getApiBaseUrl();
-
-  // Get latest session (Supabase will refresh internally if needed)
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
-
-  const token = data.session?.access_token;
-
-  const headers = new Headers(init.headers);
-
-  // Only attach Authorization when we have a session
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-
-  // Add JSON header only if we have a body and caller didn't set it
-  if (init.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const res = await fetch(`${base}${path}`, { ...init, headers });
-
-  // If backend rejects, clear session (revoked/expired refresh token)
-  if (res.status === 401) {
-    await supabase.auth.signOut();
-  }
-
-  return res;
-}
 
 // ---------- API FUNCTIONS ----------
 
