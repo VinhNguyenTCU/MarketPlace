@@ -216,7 +216,7 @@ export const listingsRepository = {
   },
 
   async getMostRecent() {
-    const supabase = getSupabaseAnonClient();
+    const supabase = getSupabaseAnonClient;
 
     // fetches the 20 most recent items
     const res = await supabase.from("listings").select("*").limit(20);
