@@ -1,6 +1,7 @@
 import { getSupabaseAnonClient } from "../supabase/client.js";
 
 export class AuthService {
+
   async signup(email: string, password: string) {
     const { data, error } = await getSupabaseAnonClient().auth.signUp({ email, password });
     if (error) return { ok: false as const, status: 400, error: error.message };

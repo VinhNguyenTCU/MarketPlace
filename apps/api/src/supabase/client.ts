@@ -20,9 +20,20 @@ console.log("Supabase Service Role Key:", serviceRoleKey ? "set" : "not set");
  * - auth methods that don't need a user token
  * - anything where you don't need to impersonate a logged-in user
  */
-export const getSupabaseAnonClient = () => createClient(supabaseUrl, anonKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+let supabaseAnonClient: SupabaseClient | undefined;
+
+export const getSupabaseAnonClient = () => {
+  if (supabaseAnonClient) return supabaseAnonClient;
+
+  supabaseAnonClient = createClient(supabaseUrl, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  return supabaseAnonClient;
+};
+
+// Backward-compatible alias for older imports still using `supabaseAnon`.
+export const supabaseAnon = getSupabaseAnonClient();
 
 /**
  * Supabase client scoped to a user via their access token.

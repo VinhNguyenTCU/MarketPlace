@@ -26,10 +26,34 @@ export async function requireAuth(
   if (!match) return res.status(401).json({ error: "Missing Bearer token" });
 
   const token = match[1];
-  const { data, error } = await getSupabaseAnonClient().auth.getUser(token);
+  const supabase = getSupabaseAnonClient();
+  const { data, error } = await supabase.auth.getUser(token);
 
   if (error || !data?.user) {
     return res.status(401).json({ error: "Invalid or expired token " });
+  }
+
+  const authUserId = data.user.id;
+
+  const { data: appUser, error: appUserErr } = await supabase
+    .from("users")
+    .select("status, role")
+    .eq("id", authUserId)
+    .single();
+
+    if (appUserErr || !appUser) {
+    return res.status(403).json({ error: "User record not found" });
+  }
+
+  const status = appUser.status ?? "active";
+  if (status === "deleted") {
+    return res.status(403).json({ error: "Account deleted" });
+  }
+  if (status === "suspended") {
+    return res.status(403).json({ error: "Account suspended" });
+  }
+  if (status !== "active") {
+    return res.status(403).json({ error: `Account not active: ${status}` });
   }
 
   req.user = {
