@@ -3,20 +3,22 @@ import request from "supertest";
 import { buildTestApp } from "./testApp.js";
 import { getSupabaseAnonClient } from "../supabase/client.js";
 
-vi.mock("../supabase/client.js", () => ({
-  getSupabaseAnonClient: {
-    auth: {
-      signUp: vi.fn(),
-      signInWithPassword: vi.fn(),
-      refreshSession: vi.fn(),
-      getUser: vi.fn(),
-    },
-    from: vi.fn(),
+const mockAnonClient = {
+  auth: {
+    signUp: vi.fn(),
+    signInWithPassword: vi.fn(),
+    refreshSession: vi.fn(),
+    getUser: vi.fn(),
   },
+  from: vi.fn(),
+};
+
+vi.mock("../supabase/client.js", () => ({
+  getSupabaseAnonClient: vi.fn(() => mockAnonClient),
 }));
 
 function mockActiveUserLookup() {
-  (getSupabaseAnonClient as any).from = vi.fn().mockReturnValue({
+  (getSupabaseAnonClient() as any).from = vi.fn().mockReturnValue({
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({
@@ -43,7 +45,7 @@ describe("Auth routes", () => {
   });
 
   it("POST /auth/signup -> 200 on success", async () => {
-    (getSupabaseAnonClient.auth.signUp as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.signUp.mockResolvedValue({
       data: {
         user: { id: "u1", email: "test@tcu.edu" },
         session: { access_token: "access", refresh_token: "refresh" },
@@ -57,14 +59,14 @@ describe("Auth routes", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.user.id).toBe("u1");
-    expect(getSupabaseAnonClient.auth.signUp).toHaveBeenCalledWith({
+    expect((getSupabaseAnonClient() as any).auth.signUp).toHaveBeenCalledWith({
       email: "test@tcu.edu",
       password: "Password123!",
     });
   });
 
   it("POST /auth/signin -> 401 when invalid credentials", async () => {
-    (getSupabaseAnonClient.auth.signInWithPassword as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.signInWithPassword.mockResolvedValue({
       data: { user: null, session: null },
       error: { message: "Invalid login credentials" },
     });
@@ -78,7 +80,7 @@ describe("Auth routes", () => {
   });
 
   it("POST /auth/refresh -> 200 when refresh token is valid", async () => {
-    (getSupabaseAnonClient.auth.refreshSession as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.refreshSession.mockResolvedValue({
       data: {
         session: {
           access_token: "new-access",
@@ -104,7 +106,7 @@ describe("Auth routes", () => {
   });
 
   it("GET /auth/me -> 200 when token valid", async () => {
-    (getSupabaseAnonClient.auth.getUser as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.getUser.mockResolvedValue({
       data: { user: { id: "u123", email: "ok@tcu.edu" } },
       error: null,
     });
