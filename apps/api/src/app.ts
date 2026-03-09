@@ -20,6 +20,5 @@ app.use(
   app.options(/.*/, cors());
 
 app.use("/auth", authRouter);
-app.use("/profile", profileRouter);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));

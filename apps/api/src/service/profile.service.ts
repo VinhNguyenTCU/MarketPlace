@@ -1,14 +1,24 @@
-import { ProfileRepository } from "../repository/profile.repository.js";
+import { UserRepository } from "../repository/user.repository.js";
 
-type ServiceOk<T> = { ok: true; data: T };
-type ServiceErr = { ok: false; status: number; error: string };
+type ServiceError = {
+  ok: false;
+  status: number;
+  error: string;
+};
+
+type ServiceSuccess<T> = {
+  ok: true;
+  data: T;
+};
 
 export class ProfileService {
-  private repo = new ProfileRepository();
-
-  async getMyProfile(accessToken: string): Promise<ServiceOk<any> | ServiceErr> {
-    const { data, error } = await this.repo.getMe(accessToken);
-    if (error) return { ok: false, status: 400, error: error.message };
-    return { ok: true, data };
+  async getMyProfile(accessToken: string): Promise<ServiceError | ServiceSuccess<unknown>> {
+    try {
+      const profile = await UserRepository.getSelfByTokenAsUser(accessToken);
+      return { ok: true, data: profile };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch profile";
+      return { ok: false, status: 400, error: message };
+    }
   }
 }

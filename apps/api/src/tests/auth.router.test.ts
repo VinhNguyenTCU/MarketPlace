@@ -1,28 +1,42 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { buildTestApp } from "./testApp.js";
+import { getSupabaseAnonClient } from "../supabase/client.js";
 
-// Mock the supabase client module
-vi.mock("../supabase/client.js", () => {
-  return {
-    supabaseAnon: {
-      auth: {
-        signUp: vi.fn(),
-        signInWithPassword: vi.fn(),
-        getUser: vi.fn(),
-      },
-    },
-  };
-});
+const mockAnonClient = {
+  auth: {
+    signUp: vi.fn(),
+    signInWithPassword: vi.fn(),
+    refreshSession: vi.fn(),
+    getUser: vi.fn(),
+  },
+  from: vi.fn(),
+};
 
-// Import AFTER mocking
-import { supabaseAnon } from "../supabase/client.js";
+vi.mock("../supabase/client.js", () => ({
+  getSupabaseAnonClient: vi.fn(() => mockAnonClient),
+}));
+
+function mockActiveUserLookup() {
+  (getSupabaseAnonClient() as any).from = vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { status: "active", role: "user" },
+          error: null,
+        }),
+      }),
+    }),
+  });
+}
 
 describe("Auth routes", () => {
   const app = buildTestApp();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.FRONTEND_URL = "https://test.app";
+    mockActiveUserLookup();
   });
 
   it("POST /auth/signup -> 400 when missing fields", async () => {
@@ -31,11 +45,12 @@ describe("Auth routes", () => {
     expect(res.body.error).toMatch(/email and password required/i);
   });
 
-  it("POST /auth/signup -> 200 on success (includes fullName options)", async () => {
-    process.env.FRONTEND_URL = "https://test.app";
-  
-    (supabaseAnon.auth.signUp as any).mockResolvedValue({
-      data: { user: { id: "u1", email: "test@tcu.edu" }, session: null },
+  it("POST /auth/signup -> 200 on success", async () => {
+    (getSupabaseAnonClient() as any).auth.signUp.mockResolvedValue({
+      data: {
+        user: { id: "u1", email: "test@tcu.edu" },
+        session: { access_token: "access", refresh_token: "refresh" },
+      },
       error: null,
     });
   
@@ -44,8 +59,8 @@ describe("Auth routes", () => {
       .send({ email: "test@tcu.edu", password: "Password123!", fullName: "test" });
   
     expect(res.status).toBe(200);
-  
-    expect(supabaseAnon.auth.signUp).toHaveBeenCalledWith({
+    expect(res.body.user.id).toBe("u1");
+    expect((getSupabaseAnonClient() as any).auth.signUp).toHaveBeenCalledWith({
       email: "test@tcu.edu",
       password: "Password123!",
       options: {
@@ -59,7 +74,7 @@ describe("Auth routes", () => {
   
 
   it("POST /auth/signin -> 401 when invalid credentials", async () => {
-    (supabaseAnon.auth.signInWithPassword as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.signInWithPassword.mockResolvedValue({
       data: { user: null, session: null },
       error: { message: "Invalid login credentials" },
     });
@@ -72,6 +87,26 @@ describe("Auth routes", () => {
     expect(res.body.error).toMatch(/invalid/i);
   });
 
+  it("POST /auth/refresh -> 200 when refresh token is valid", async () => {
+    (getSupabaseAnonClient() as any).auth.refreshSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: "new-access",
+          refresh_token: "new-refresh",
+        },
+      },
+      error: null,
+    });
+
+    const res = await request(app)
+      .post("/auth/refresh")
+      .send({ refresh_token: "old-refresh" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.access_token).toBe("new-access");
+    expect(res.body.refresh_token).toBe("new-refresh");
+  });
+
   it("GET /auth/me -> 401 when missing bearer token", async () => {
     const res = await request(app).get("/auth/me");
     expect(res.status).toBe(401);
@@ -79,7 +114,7 @@ describe("Auth routes", () => {
   });
 
   it("GET /auth/me -> 200 when token valid", async () => {
-    (supabaseAnon.auth.getUser as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.getUser.mockResolvedValue({
       data: { user: { id: "u123", email: "ok@tcu.edu" } },
       error: null,
     });

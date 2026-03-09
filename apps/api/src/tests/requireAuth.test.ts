@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response, NextFunction } from "express";
 import { requireAuth } from "../middleware/requireAuth.js";
 
+const mockAnonClient = {
+  auth: { getUser: vi.fn() },
+  from: vi.fn(),
+};
+
 vi.mock("../supabase/client.js", () => ({
-  supabaseAnon: {
-    auth: { getUser: vi.fn() },
-  },
+  getSupabaseAnonClient: vi.fn(() => mockAnonClient),
 }));
 
-import { supabaseAnon } from "../supabase/client.js";
+import { getSupabaseAnonClient } from "../supabase/client.js";
 
 function mockRes() {
   const res: Partial<Response> = {};
@@ -34,7 +37,7 @@ describe("requireAuth middleware", () => {
   });
 
   it("401 if token invalid", async () => {
-    (supabaseAnon.auth.getUser as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.getUser.mockResolvedValue({
       data: { user: null },
       error: { message: "bad token" },
     });
@@ -50,9 +53,19 @@ describe("requireAuth middleware", () => {
   });
 
   it("calls next + sets req.user when token valid", async () => {
-    (supabaseAnon.auth.getUser as any).mockResolvedValue({
+    (getSupabaseAnonClient() as any).auth.getUser.mockResolvedValue({
       data: { user: { id: "u1", email: "ok@tcu.edu" } },
       error: null,
+    });
+    (getSupabaseAnonClient() as any).from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { status: "active", role: "user" },
+            error: null,
+          }),
+        }),
+      }),
     });
 
     const req = { headers: { authorization: "Bearer good" } } as any as Request;
