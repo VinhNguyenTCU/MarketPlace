@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response, NextFunction } from "express";
 import { requireAuth } from "../middleware/requireAuth.js";
 
+const mockAnonClient = {
+  auth: { getUser: vi.fn() },
+};
+
 vi.mock("../supabase/client.js", () => ({
   getSupabaseAnonClient: {
     auth: { getUser: vi.fn() },
