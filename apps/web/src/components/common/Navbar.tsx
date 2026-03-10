@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import { styled } from "@mui/material/styles";
@@ -6,6 +6,11 @@ import { styled } from "@mui/material/styles";
 import { Button } from "../ui/Button";
 import { SearchInput } from "../ui/SearchInput";
 import logo from "../../assets/tcu_logo.png";
+import profile from "../../assets/profile_logo.png";
+import { Link, useNavigate } from "react-router-dom";
+
+import { supabase } from "../../lib/supabase";
+import { signout } from "../../service/auth.service";
 
 const CATEGORIES = [
   { value: "all", label: "All categories" },
@@ -94,15 +99,70 @@ const SignUpButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+const LogoutButton = styled(Button)(({ theme }) => ({
+  height: 40,
+  backgroundColor: theme.palette.common.white,
+  color: theme.palette.primary.main,
+  borderColor: theme.palette.primary.light,
+
+  "&:hover": {
+    backgroundColor: theme.palette.grey[200],
+    borderColor: theme.palette.primary.main,
+  },
+}));
+
+const ProfileIcon = styled("img")(() => ({
+  height: 36,
+  width: 36,
+  borderRadius: "50%",
+  cursor: "pointer",
+}));
+
 export function Navbar() {
+  const navigate = useNavigate();
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+      setLoading(false);
+    }
+
+    checkSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  function goHome() {
+    navigate("/");
+  }
+
+  function goToProfile() {
+    navigate("/profile");
+  }
+
+  async function handleLogout() {
+    await signout();
+    navigate("/sign-in");
+  }
 
   return (
     <Header>
       <NavContainer maxWidth={false} disableGutters>
         <Row>
-          <Logo src={logo} alt="TCU Marketplace" />
+          <Logo src={logo} alt="TCU Marketplace" onClick={goHome} />
 
           <SearchSlot>
             <SearchInput
@@ -122,8 +182,34 @@ export function Navbar() {
             <Spacer />
 
             <Group>
-              <SignInButton variant="outlined">Sign In</SignInButton>
-              <SignUpButton>Sign Up</SignUpButton>
+              {!loading && !isAuthenticated && (
+                <>
+                  <Link to="/sign-in">
+                    <SignInButton variant="outlined">Sign In</SignInButton>
+                  </Link>
+
+                  <Link to="/sign-up">
+                    <SignUpButton>Sign Up</SignUpButton>
+                  </Link>
+                </>
+              )}
+
+              {!loading && isAuthenticated && (
+                <>
+                  <ProfileIcon
+                    src={profile}
+                    alt="Profile"
+                    onClick={goToProfile}
+                  />
+
+                  <LogoutButton
+                    onClick={handleLogout}
+                    sx={{ height: 40 }}
+                  >
+                    Logout
+                  </LogoutButton>
+                </>
+              )}
             </Group>
           </Right>
         </Row>

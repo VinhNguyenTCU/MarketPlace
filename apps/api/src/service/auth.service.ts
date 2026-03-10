@@ -1,9 +1,26 @@
 import { getSupabaseAnonClient } from "../supabase/client.js";
 
 export class AuthService {
-
-  async signup(email: string, password: string) {
-    const { data, error } = await getSupabaseAnonClient().auth.signUp({ email, password });
+  async signup(email: string, password: string, fullName: string) {
+    if (!fullName || !fullName.trim()) {
+        return { ok: false as const, status: 400, error: "fullName required" };
+      }
+    
+    const frontendUrl = process.env.FRONTEND_URL;
+      if (!frontendUrl) {
+        return { ok: false as const, status: 500, error: "FRONTEND_URL is not configured" };
+      }
+    
+    const { data, error } = await getSupabaseAnonClient().auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${frontendUrl}/sign-in`,
+        data: {
+          full_name: fullName.trim(),
+        },
+      },
+    });
     if (error) return { ok: false as const, status: 400, error: error.message };
 
     return {

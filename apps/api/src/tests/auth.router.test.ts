@@ -35,13 +35,14 @@ describe("Auth routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.FRONTEND_URL = "https://test.app";
     mockActiveUserLookup();
   });
 
   it("POST /auth/signup -> 400 when missing fields", async () => {
     const res = await request(app).post("/auth/signup").send({ email: "a@b.com" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/email and password required/i);
+    expect(res.body.error).toMatch(/email, password, and fullName are required/i);
   });
 
   it("POST /auth/signup -> 200 on success", async () => {
@@ -52,18 +53,25 @@ describe("Auth routes", () => {
       },
       error: null,
     });
-
+  
     const res = await request(app)
       .post("/auth/signup")
-      .send({ email: "test@tcu.edu", password: "Password123!" });
-
+      .send({ email: "test@tcu.edu", password: "Password123!", fullName: "test" });
+  
     expect(res.status).toBe(200);
     expect(res.body.user.id).toBe("u1");
     expect((getSupabaseAnonClient() as any).auth.signUp).toHaveBeenCalledWith({
       email: "test@tcu.edu",
       password: "Password123!",
+      options: {
+        emailRedirectTo: "https://test.app/sign-in",
+        data: { full_name: "test" },
+      },
     });
+  
+    expect(res.body.user.email).toBe("test@tcu.edu");
   });
+  
 
   it("POST /auth/signin -> 401 when invalid credentials", async () => {
     (getSupabaseAnonClient() as any).auth.signInWithPassword.mockResolvedValue({
