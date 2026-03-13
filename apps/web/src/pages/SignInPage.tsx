@@ -140,7 +140,7 @@ export default function SignInPage() {
 
             <Typography
               component={Link}
-              to="/forgot-password"
+              to="/confirm-email"
               variant="body2"
               color="text.secondary"
               textAlign="center"
