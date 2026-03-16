@@ -32,6 +32,16 @@ export type SearchListingsParams = {
   limit?: number;
 };
 
+export type CreateListingInput = {
+  title: string;
+  description: string;
+  category_id: string;
+  condition_id: string;
+  price: number;
+  is_free: boolean;
+  location: string;
+  status?: ListingStatus;
+};
 
 export type ListingUpdateInput = Partial<
   Pick<
