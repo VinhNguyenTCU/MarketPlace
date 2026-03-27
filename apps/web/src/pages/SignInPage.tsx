@@ -7,7 +7,7 @@ import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useTheme } from "@mui/material/styles";
 import { Button } from "../components/ui/Button";
-import { signin } from "../service/auth.service"; // ✅ adjust path if needed
+import { signin } from "../service/auth.service";
 
 export default function SignInPage() {
   const theme = useTheme();
@@ -34,14 +34,13 @@ export default function SignInPage() {
     try {
       setLoading(true);
 
-      // ✅ Calls backend /auth/signin and sets Supabase session internally
+      // Calls backend /auth/signin and sets Supabase session internally
       await signin(eTrim, password);
 
       navigate("/", { replace: true });
     } catch (err: any) {
       const msg = String(err?.message ?? "Sign in failed.");
 
-      // Nice UX for common Supabase error
       if (msg.toLowerCase().includes("email not confirmed")) {
         setErrorMsg("Please confirm your email first (check your inbox), then sign in again.");
       } else {

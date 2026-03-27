@@ -30,10 +30,10 @@ export default function GuestOnlyRoute() {
   }, []);
 
   if (loading) {
-    return <div />;   // or a spinner
+    return <div />;   // loading spinner (in the future)
   }
 
-  // If logged in → kick them to home
+  // If logged in → redirect them to the home page
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }

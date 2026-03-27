@@ -19,7 +19,7 @@ export default function App() {
         
         {/* Auth pages */}
         <Route element={<AuthLayout />}>
-        <Route element={<GuestOnlyRoute />}>
+          <Route element={<GuestOnlyRoute />}>
             <Route path="/sign-in" element={<SignInPage />} />
             <Route path="/sign-up" element={<SignUpPage />} />
           </Route>

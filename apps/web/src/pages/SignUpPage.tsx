@@ -48,7 +48,7 @@ export default function SignUpPage() {
     try {
       setLoading(true);
 
-      // Calls your backend /auth/signup
+      // Calls backend /auth/signup
       await signup(email.trim(), password, fullName.trim());
 
       // Show modal: "Please confirm your email"
