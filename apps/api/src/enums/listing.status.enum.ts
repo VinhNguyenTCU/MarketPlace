@@ -5,4 +5,5 @@ export enum ListingStatus {
     REMOVED = "REMOVED",
     BID = "BID",
     FREE = "FREE",
+    RESERVED = "RESERVED",
 }

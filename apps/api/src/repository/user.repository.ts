@@ -177,6 +177,17 @@ export const UserRepository = {
         return getSupabaseAdminClient();
     },
 
+    async getUserByEmail(email : string): Promise<{email:string} | null > {
+        const { data, error } = await this.asAdmin()
+        .from("users")
+        .select("email")
+        .eq("email", email)
+        .single();
+
+        if (error || !data) return null;
+        return data;
+    },
+
     async getUserByIdAsAdmin(userId: string): Promise<User> {
         const supabase = this.asAdmin();
 

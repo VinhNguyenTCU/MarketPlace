@@ -21,6 +21,7 @@ export default function GuestOnlyRoute() {
 
     // Also listen for changes (login/logout)
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if(_event = "PASSWORD_RECOVERY") return;
       setIsAuthenticated(!!session);
     });
 

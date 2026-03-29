@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import  Box  from "@mui/material/Box";
 import { Typography } from "@mui/material";
@@ -6,37 +6,17 @@ import  TextField  from "@mui/material/TextField";
 import { Button } from "../components/ui/Button";
 import { useNavigate }  from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { updatepassword } from "../service/auth.service";
 
 export default function ChangePassWordPage() {
     const [newpassword, setNewPassword] = useState("");
     const [confirmpassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [checking, setChecking] = useState(true);
     const navigate = useNavigate();
     const theme = useTheme();
     const heroGradient = `linear-gradient(90deg, ${theme.custom.hero.from}, ${theme.custom.hero.to})`;
-
-    useEffect(() => {
-        const checkAuth = async () => {
-          try {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) {
-              setIsAuthenticated(true);
-            } else {
-              // No valid session from email link, redirect
-              navigate("/confirm-email");
-            }
-          } catch (err) {
-            console.error("Auth check error:", err);
-            navigate("/confirm-email");
-          } finally {
-            setChecking(false);
-          }
-        };
-        checkAuth();
-      }, [navigate]);
+    
     
       const handleChangePassword = async () => {
         // Validation
@@ -54,21 +34,13 @@ export default function ChangePassWordPage() {
         setError("");
     
         try {
-          // Update password using Supabase
-          const { error } = await supabase.auth.updateUser({
-            password: newpassword
-          });
-    
-          if (error) throw error;
-    
-          // Clean up localStorage
-          localStorage.removeItem("resetEmail");
-          
-          // Success! Sign out and redirect
-          alert("Password updated successfully! Please sign in with your new password.");
-          await supabase.auth.signOut();
-          navigate("/sign-in");
-    
+            await updatepassword(newpassword,confirmpassword);
+
+            localStorage.removeItem("resetEmail");
+            localStorage.removeItem("isRecovery");
+        
+            await supabase.auth.signOut();
+            navigate("/sign-in", {state: { message: "Password updated successfully! Please sign in with your new password"}});
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to update password";
           setError(errorMessage);
@@ -76,27 +48,7 @@ export default function ChangePassWordPage() {
           setLoading(false);
         }
       };
-    
-      // Show loading while checking authentication
-      if (checking) {
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "100vh",
-            }}
-          >
-            <Typography>Verifying reset link...</Typography>
-          </Box>
-        );
-      }
-    
-      // Don't render form if not authenticated
-      if (!isAuthenticated) {
-        return null;
-      }
+
     
     return(
         <Box

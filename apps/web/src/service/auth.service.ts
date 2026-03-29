@@ -81,3 +81,29 @@ export async function getMyProfile() {
 
   return json;
 }
+
+export async function resetlink(email: string) {
+  if(!email) throw new Error("Email is required");
+  const base = getApiBaseUrl();
+  const res = await fetch (`${base}/auth/resetlink`,{
+    method:"POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email}),
+  });
+  
+  const json = await res.json();
+  if(!res.ok) {
+    throw new Error(json?.error || "Failed to send reset link");
+  }
+
+  return json as {
+    message?: string,
+  };
+}
+
+export async function updatepassword(newPassword : string, confirmPassword : string) {
+  if(!newPassword || !confirmPassword) throw new Error("New password and confirm password are required");
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message);
+  return { message: "Password updated successfully" };
+}

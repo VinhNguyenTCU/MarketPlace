@@ -9,6 +9,7 @@ const mockAnonClient = {
     signInWithPassword: vi.fn(),
     refreshSession: vi.fn(),
     getUser: vi.fn(),
+    resetlink: vi.fn(),
   },
   from: vi.fn(),
 };
@@ -105,6 +106,46 @@ describe("Auth routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.access_token).toBe("new-access");
     expect(res.body.refresh_token).toBe("new-refresh");
+  });
+
+  it("POST /auth/resetlink -> 400 when missing email", async() => {
+    const res = await request(app)
+    .post("/auth/resetlink").send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/email is required/i);
+  });
+
+  it("POST /auth/resetlink -> 400 when illegal email format", async() => {
+    (getSupabaseAnonClient() as any).auth.resetlink.mockResolvedValue({
+      error: {message: "Email not found"}
+    });
+
+    const res = await request(app)
+    .post("/auth/resetlink")
+    .send({email: "test@tcu.edu"})
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/email not found/i);
+  });
+
+  it("POST /auth/resetlink -> 200 on succes", async() => {
+    (getSupabaseAnonClient() as any).auth.resetlink.mockResolvedValue({
+      error: null,
+    });
+    
+    const res = await request(app)
+    .post("/auth/resetlink")
+    .send({ email: "test@tcu.edu" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toMatch(/link reset password is sent/i);
+    expect((getSupabaseAnonClient() as any).auth.resetlink).toHaveBeenCalledWith({
+      email: "test@tcu.edu",
+      options: {
+        redirectTo: "httpss//test.app/change-password"
+      }
+    });
   });
 
   it("GET /auth/me -> 401 when missing bearer token", async () => {

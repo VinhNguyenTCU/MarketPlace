@@ -4,7 +4,7 @@ import  Box  from "@mui/material/Box";
 import { Typography } from "@mui/material";
 import { Button } from "../components/ui/Button";
 import { Link, useNavigate }  from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { resetlink } from "../service/auth.service";
 
 const maskEmail = (email:string) => {
     const[username,domain] = email.split('@');
@@ -16,6 +16,7 @@ const maskEmail = (email:string) => {
 export default function ConfirmationLink() {
     const theme = useTheme();
     const [countdown, setCountDown] = useState(60);
+    const [resending, setResending] = useState(false);
     const navigate = useNavigate();
     const email = localStorage.getItem("resetEmail");
     const heroGradient = `linear-gradient(90deg, ${theme.custom.hero.from}, ${theme.custom.hero.to})`;
@@ -37,14 +38,15 @@ export default function ConfirmationLink() {
             console.error("No email found");
             return;
         }
+        setResending(true);
         setCountDown(60);
             
         try {
-            await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/change-password`,
-            });
+            await resetlink(email);
         } catch (error) {
             console.error("Failed to resend email:",error);
+        } finally {
+            setResending(false);
         }
     };
 
@@ -130,14 +132,16 @@ export default function ConfirmationLink() {
                         Didn't receive the link?
                     </Typography>
                     <Button
+                        type="submit"
                         fullWidth
                         onClick={handleResend}
+                        disabled={resending}
                         style = {{
                         textDecoration:"none",
                         color:"white", 
                         }}
                     >
-                        Resend code
+                        {resending? "Sending..." : "Resend"}
                     </Button>
                 </Box>
             </Box>

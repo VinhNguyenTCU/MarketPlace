@@ -5,7 +5,7 @@ import { Typography } from "@mui/material";
 import  TextField  from "@mui/material/TextField";
 import { Button } from "../components/ui/Button";
 import { Link, useNavigate }  from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { resetlink } from "../service/auth.service";
 
 
 export default function ConfirmEmailPage() {
@@ -27,11 +27,10 @@ export default function ConfirmEmailPage() {
         setError("");
 
         try {
-            const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/change-password`,
-            });
-            if(supabaseError) throw supabaseError;
+            await resetlink(email);
             localStorage.setItem("resetEmail",email);
+            localStorage.setItem("isRecovery","true");
+            console.log("isRecovery set:", localStorage.getItem("isRecovery"));
             navigate("/confirmation-link");
         } catch(error) {
             const errorMessage = error instanceof Error? error.message : "Failed to resend message";
@@ -92,7 +91,7 @@ export default function ConfirmEmailPage() {
                         mt:1,
                     }}
                 >
-                    Enter your email to receive confirmation code
+                    Enter your email to receive confirmation link
                 </Typography>
                 <TextField
                     label="Email Address"
@@ -106,6 +105,7 @@ export default function ConfirmEmailPage() {
                     helperText = {error}
                 ></TextField>
                     <Button
+                        type="submit"
                         fullWidth
                         onClick={handleContinue}
                         disabled = {loading || !email}

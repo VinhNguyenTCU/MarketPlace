@@ -34,6 +34,26 @@ export class AuthController {
     return res.json(result.data);
   };
 
+  resetlink = async (req: Request, res: Response) => {
+    const {email} = req.body ?? {};
+    if(!email) return res.status(400).json({ error: "email is required"});
+
+    const result = await this.service.resetlink(email);
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+
+    return res.json(result.data);
+  }
+  
+  /*updatepassword = async (req: Request, res: Response) => {
+    const {newPassword, confirmPassword} = req.body ?? {};
+    if(!newPassword || !confirmPassword) return res.status(400).json({error: "newPassword and confirmPassword are required"});
+
+    const result = await this.service.updatepassword(newPassword,confirmPassword);
+    if(!result.ok) return res.status(result.status).json({error: result.error});
+
+    return res.json(result.data);
+  }*/
+
   me = async (req: Request, res: Response) => {
     return res.json({ user: req.user });
   };
