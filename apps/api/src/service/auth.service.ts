@@ -84,28 +84,4 @@ export class AuthService {
       },
     };
   }
-
-  /*async updatepassword(newPassword : string, confirmPassword: string) {
-    if(newPassword != confirmPassword) {
-      return {ok:false as const, status:400, error: "Passwords don't match"};
-    }
-    if(newPassword.length < 6) {
-      return {ok:false as const, status:400, error: "Password needs to be at least 6 characters"};
-    }
-    
-    const {error} = await getSupabaseAnonClient().auth.updateUser({
-      password : newPassword,
-    });
-    if(error) return {
-      ok: false as const,
-      status:400,
-      error: error.message,
-    };
-    return {
-      ok:true as const,
-      data : {
-        message: "Password updated succesfully", 
-      }
-    };
-  }*/
 }
