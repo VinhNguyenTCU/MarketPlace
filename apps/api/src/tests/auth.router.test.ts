@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { buildTestApp } from "./testApp.js";
 import { getSupabaseAnonClient } from "../supabase/client.js";
+import { UserRepository } from "../repository/user.repository.js";
 
 const mockAnonClient = {
   auth: {
@@ -9,13 +10,19 @@ const mockAnonClient = {
     signInWithPassword: vi.fn(),
     refreshSession: vi.fn(),
     getUser: vi.fn(),
-    resetlink: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
   },
   from: vi.fn(),
 };
 
 vi.mock("../supabase/client.js", () => ({
   getSupabaseAnonClient: vi.fn(() => mockAnonClient),
+}));
+
+vi.mock("../repository/user.repository.js", () => ({
+  UserRepository: {
+    getUserByEmail: vi.fn(),
+  },
 }));
 
 function mockActiveUserLookup() {
@@ -117,7 +124,9 @@ describe("Auth routes", () => {
   });
 
   it("POST /auth/resetlink -> 400 when illegal email format", async() => {
-    (getSupabaseAnonClient() as any).auth.resetlink.mockResolvedValue({
+    (UserRepository.getUserByEmail as any).mockResolvedValue({ id: 'u1' });
+    (getSupabaseAnonClient() as any).auth.resetPasswordForEmail.mockResolvedValue({
+      data: null,
       error: {message: "Email not found"}
     });
 
@@ -130,7 +139,9 @@ describe("Auth routes", () => {
   });
 
   it("POST /auth/resetlink -> 200 on succes", async() => {
-    (getSupabaseAnonClient() as any).auth.resetlink.mockResolvedValue({
+    (UserRepository.getUserByEmail as any).mockResolvedValue({ id: 'u1' });
+    (getSupabaseAnonClient() as any).auth.resetPasswordForEmail.mockResolvedValue({
+      data: {},
       error: null,
     });
     
@@ -139,13 +150,13 @@ describe("Auth routes", () => {
     .send({ email: "test@tcu.edu" });
 
     expect(res.status).toBe(200);
-    expect(res.body.message).toMatch(/link reset password is sent/i);
-    expect((getSupabaseAnonClient() as any).auth.resetlink).toHaveBeenCalledWith({
-      email: "test@tcu.edu",
-      options: {
-        redirectTo: "httpss//test.app/change-password"
+    expect(res.body.message).toMatch(/password reset email sent/i);
+    expect((getSupabaseAnonClient() as any).auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      "test@tcu.edu",
+      {
+        redirectTo: "https://test.app/auth"
       }
-    });
+    );
   });
 
   it("GET /auth/me -> 401 when missing bearer token", async () => {

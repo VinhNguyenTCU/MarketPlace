@@ -74,7 +74,7 @@ export class AuthService {
 
     const {error} = await getSupabaseAnonClient().auth.resetPasswordForEmail(
       email,
-      {redirectTo: `${frontendUrl}/change-password`}
+      {redirectTo: `${frontendUrl}/auth`}
     );
     if(error) return { ok: false as const, status: 400, error: error.message, };
     return {

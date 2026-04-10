@@ -35,6 +35,9 @@ export class AuthController {
   };
 
   resetlink = async (req: Request, res: Response) => {
+    const start = Date.now();
+    const duration = Date.now() - start;
+    console.log(`Reset link took: ${duration}ms`);
     const {email} = req.body ?? {};
     if(!email) return res.status(400).json({ error: "email is required"});
 
