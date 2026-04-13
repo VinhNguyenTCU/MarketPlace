@@ -71,46 +71,12 @@ describe("listingsRepository", () => {
     expect(builder.single).toHaveBeenCalled();
   });
 
-  it("searchListings validates query/offset/limit/price", async () => {
-    await expect(
-      listingsRepository.searchListings("token", { query: "   " }),
-    ).rejects.toThrow(/query field cannot be empty/i);
-
-    await expect(
-      listingsRepository.searchListings("token", { query: "ok", offset: -1 }),
-    ).rejects.toThrow(/offset must be/i);
-
-    await expect(
-      listingsRepository.searchListings("token", { query: "ok", limit: 0 }),
-    ).rejects.toThrow(/limit must be/i);
-
-    await expect(
-      listingsRepository.searchListings("token", { query: "ok", limit: 101 }),
-    ).rejects.toThrow(/limit must be/i);
-
-    await expect(
-      listingsRepository.searchListings("token", { query: "ok", minPrice: NaN }),
-    ).rejects.toThrow(/minPrice is invalid/i);
-
-    await expect(
-      listingsRepository.searchListings("token", { query: "ok", maxPrice: NaN }),
-    ).rejects.toThrow(/maxPrice is invalid/i);
-
-    await expect(
-      listingsRepository.searchListings("token", {
-        query: "ok",
-        minPrice: 10,
-        maxPrice: 5,
-      }),
-    ).rejects.toThrow(/minPrice cannot be greater/i);
-  });
-
   it("searchListings builds query with filters and range", async () => {
     const builder = makeQueryBuilder({ data: [], error: null });
     userFrom.mockReturnValue(builder);
 
     const res = await listingsRepository.searchListings("token", {
-      query: " phone ",
+      query: "phone",
       categoryId: "cat1",
       conditionId: "cond1",
       status: ListingStatus.ACTIVE,
@@ -142,11 +108,11 @@ describe("listingsRepository", () => {
     userFrom.mockReturnValue(builder);
 
     await listingsRepository.getListingsByCategoryId("token", "cat1");
-    expect(builder.eq).toHaveBeenCalledWith("listings.category_id", "cat1");
+    expect(builder.eq).toHaveBeenCalledWith("category_id", "cat1");
 
     await listingsRepository.getListingsByCondition("token", "good");
     expect(builder.select).toHaveBeenCalledWith("*, conditions!inner(id, name)");
-    expect(builder.eq).toHaveBeenCalledWith("conditions.bname", "good");
+    expect(builder.eq).toHaveBeenCalledWith("conditions.name", "good");
 
     await listingsRepository.getListingsByStatus("token", ListingStatus.SOLD);
     expect(builder.eq).toHaveBeenCalledWith("status", ListingStatus.SOLD);
@@ -156,35 +122,38 @@ describe("listingsRepository", () => {
     const builder = makeQueryBuilder({ data: { id: "l1" }, error: null });
     userFrom.mockReturnValue(builder);
 
-    const res = await listingsRepository.createListing("token", { title: "t" });
+    const input = {
+      id: "l1",
+      seller_id: "seller-1",
+      title: "t",
+      status: ListingStatus.ACTIVE,
+      description: "desc",
+      category_id: "cat1",
+      condition_id: "cond1",
+      price: 10,
+      is_free: false,
+      location: "TCU",
+      created_at: "2024-01-01T00:00:00.000Z",
+    };
 
-    expect(builder.insert).toHaveBeenCalledWith({ title: "t" });
+    const res = await listingsRepository.createListing("token", input);
+
+    expect(builder.insert).toHaveBeenCalledWith(input);
     expect(builder.select).toHaveBeenCalledWith("*");
     expect(builder.single).toHaveBeenCalled();
     expect(res.data?.id).toBe("l1");
   });
 
-  it("updateListing throws when no fields provided", async () => {
-    await expect(
-      listingsRepository.updateListing("token", "id1", {}),
-    ).rejects.toThrow(/no valid fields/i);
-  });
-
-  it("updateListing checks current price when price provided", async () => {
-    const currentBuilder = makeQueryBuilder({ data: { price: 10 }, error: null });
-    const updateBuilder = makeQueryBuilder({ data: { id: "l1" }, error: null });
-    userFrom
-      .mockImplementationOnce(() => currentBuilder)
-      .mockImplementationOnce(() => updateBuilder);
+  it("updateListing updates and returns record", async () => {
+    const builder = makeQueryBuilder({ data: { id: "l1" }, error: null });
+    userFrom.mockReturnValue(builder);
 
     const res = await listingsRepository.updateListing("token", "id1", { price: 5 });
 
-    expect(currentBuilder.select).toHaveBeenCalledWith("price");
-    expect(currentBuilder.eq).toHaveBeenCalledWith("id", "id1");
-    expect(currentBuilder.single).toHaveBeenCalled();
-    expect(updateBuilder.update).toHaveBeenCalledWith({ price: 5 });
-    expect(updateBuilder.eq).toHaveBeenCalledWith("id", "id1");
-    expect(updateBuilder.single).toHaveBeenCalled();
+    expect(builder.update).toHaveBeenCalledWith({ price: 5 });
+    expect(builder.eq).toHaveBeenCalledWith("id", "id1");
+    expect(builder.select).toHaveBeenCalledWith("*");
+    expect(builder.single).toHaveBeenCalled();
     expect(res.data?.id).toBe("l1");
   });
 

@@ -32,7 +32,6 @@ export type SearchListingsParams = {
   limit?: number;
 };
 
-
 export type ListingUpdateInput = Partial<
   Pick<
     Listing,
