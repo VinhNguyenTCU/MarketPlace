@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ListingService } from "../service/listing.service.js";
 import { ListingStatus, type Listing } from "../types/listing.js";
 import { listingsRepository } from "../repository/listings.repository.js";
+import { v4 as uuidv4 } from "uuid";
 
 vi.mock("../repository/listings.repository.js", () => ({
   listingsRepository: {
@@ -165,7 +166,7 @@ describe("ListingService", () => {
     } as any);
 
     const result = await service.createListing("token", {
-      id: "1",
+      id: uuidv4(),
       seller_id: "seller-1",
       status: ListingStatus.ACTIVE,
       title: "Desk",
@@ -179,6 +180,36 @@ describe("ListingService", () => {
     });
 
     expect(result).toEqual({ ok: false, error: "Failed to create listing" });
+  });
+
+  it("createListing returns created listing on success", async () => {
+    const id = uuidv4();
+    const newListing: Listing = {
+      id,
+      seller_id: "seller-1",
+      status: ListingStatus.ACTIVE,
+      title: "Desk",
+      description: "Wooden desk",
+      category_id: "cat-1",
+      condition_id: "cond-1",
+      price: 75,
+      is_free: false,
+      location: "TCU",
+      created_at: new Date().toISOString(),
+    };
+
+    vi.mocked(listingsRepository.createListing).mockResolvedValue({
+      data: newListing,
+    } as any);
+
+    const result = await service.createListing("token", newListing);
+
+    expect(listingsRepository.createListing).toHaveBeenCalledWith(
+      "token",
+      newListing,
+    );
+    expect(result).toEqual({ ok: true, data: newListing });
+    expect(result.ok && result.data.id).toBe(id);
   });
 
   it("updateListing returns validation error for blank id", async () => {
