@@ -1,4 +1,3 @@
-// src/services/auth.service.ts
 import { supabase } from "../lib/supabase";
 import { apiFetch, getApiBaseUrl } from "../lib/api";
 
@@ -22,7 +21,7 @@ export async function signup(email: string, password: string, fullName?: string)
   }
 
   // backend returns { user, session, message }
-  // session may be null if email confirmation is required
+  // session may be null because email confirmation is required
   return json as {
     user: any;
     session: any | null;
@@ -46,7 +45,6 @@ export async function signin(email: string, password: string) {
     throw new Error(json?.error || "Sign in failed.");
   }
 
-  // Your backend returns: { user, access_token, refresh_token }
   const access_token = json?.access_token as string | undefined;
   const refresh_token = json?.refresh_token as string | undefined;
 
@@ -54,7 +52,7 @@ export async function signin(email: string, password: string) {
     throw new Error("Missing tokens returned from server.");
   }
 
-  // 👇 Key: store into Supabase session store (auto refresh works from here)
+  // tokens are stored into Supabase session store (access token and refresh token)
   const { error } = await supabase.auth.setSession({ access_token, refresh_token });
   if (error) throw error;
 
