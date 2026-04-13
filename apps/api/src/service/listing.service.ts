@@ -1,6 +1,5 @@
 import { listingsRepository } from "../repository/listings.repository.js";
 import type {
-  CreateListingInput,
   Listing,
   ListingStatus,
   ListingUpdateInput,
@@ -192,7 +191,7 @@ export class ListingService {
 
   async createListing(
     accessToken: string,
-    listingData: CreateListingInput,
+    listingData: Listing,
   ): Promise<ServiceError | ServiceSuccess<Listing>> {
     try {
       const res = await listingsRepository.createListing(accessToken, listingData);

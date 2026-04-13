@@ -4,7 +4,6 @@ import {
   getSupabaseAnonClient,
 } from "../supabase/client.js";
 import type {
-  CreateListingInput,
   Listing,
   ListingUpdateInput,
   ListingStatus,
@@ -139,7 +138,7 @@ export const listingsRepository = {
 
   async createListing(
     accessToken: string,
-    listingData: CreateListingInput,
+    listingData: Listing,
   ): Promise<PostgrestSingleResponse<Listing>> {
     const supabase = getSupabaseUserClient(accessToken);
     const res = await supabase
