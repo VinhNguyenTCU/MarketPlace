@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { buildTestApp } from "./testApp.js";
 import { getSupabaseAnonClient } from "../supabase/client.js";
+import { UserRepository } from "../repository/user.repository.js";
 
 const mockAnonClient = {
   auth: {
@@ -9,12 +10,19 @@ const mockAnonClient = {
     signInWithPassword: vi.fn(),
     refreshSession: vi.fn(),
     getUser: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
   },
   from: vi.fn(),
 };
 
 vi.mock("../supabase/client.js", () => ({
   getSupabaseAnonClient: vi.fn(() => mockAnonClient),
+}));
+
+vi.mock("../repository/user.repository.js", () => ({
+  UserRepository: {
+    getUserByEmail: vi.fn(),
+  },
 }));
 
 function mockActiveUserLookup() {
@@ -105,6 +113,50 @@ describe("Auth routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.access_token).toBe("new-access");
     expect(res.body.refresh_token).toBe("new-refresh");
+  });
+
+  it("POST /auth/resetlink -> 400 when missing email", async() => {
+    const res = await request(app)
+    .post("/auth/resetlink").send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/email is required/i);
+  });
+
+  it("POST /auth/resetlink -> 400 when illegal email format", async() => {
+    (UserRepository.getUserByEmail as any).mockResolvedValue({ id: 'u1' });
+    (getSupabaseAnonClient() as any).auth.resetPasswordForEmail.mockResolvedValue({
+      data: null,
+      error: {message: "Email not found"}
+    });
+
+    const res = await request(app)
+    .post("/auth/resetlink")
+    .send({email: "test@tcu.edu"})
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/email not found/i);
+  });
+
+  it("POST /auth/resetlink -> 200 on succes", async() => {
+    (UserRepository.getUserByEmail as any).mockResolvedValue({ id: 'u1' });
+    (getSupabaseAnonClient() as any).auth.resetPasswordForEmail.mockResolvedValue({
+      data: {},
+      error: null,
+    });
+    
+    const res = await request(app)
+    .post("/auth/resetlink")
+    .send({ email: "test@tcu.edu" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toMatch(/password reset email sent/i);
+    expect((getSupabaseAnonClient() as any).auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      "test@tcu.edu",
+      {
+        redirectTo: "https://test.app/auth"
+      }
+    );
   });
 
   it("GET /auth/me -> 401 when missing bearer token", async () => {
