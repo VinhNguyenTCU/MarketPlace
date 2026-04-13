@@ -165,6 +165,9 @@ describe("ListingService", () => {
     } as any);
 
     const result = await service.createListing("token", {
+      id: "1",
+      seller_id: "seller-1",
+      status: ListingStatus.ACTIVE,
       title: "Desk",
       description: "Wooden desk",
       category_id: "cat-1",
@@ -172,6 +175,7 @@ describe("ListingService", () => {
       price: 75,
       is_free: false,
       location: "TCU",
+      created_at: new Date().toISOString(),
     });
 
     expect(result).toEqual({ ok: false, error: "Failed to create listing" });

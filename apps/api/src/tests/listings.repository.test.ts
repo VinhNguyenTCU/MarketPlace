@@ -123,13 +123,17 @@ describe("listingsRepository", () => {
     userFrom.mockReturnValue(builder);
 
     const input = {
+      id: "l1",
+      seller_id: "seller-1",
       title: "t",
+      status: ListingStatus.ACTIVE,
       description: "desc",
       category_id: "cat1",
       condition_id: "cond1",
       price: 10,
       is_free: false,
       location: "TCU",
+      created_at: "2024-01-01T00:00:00.000Z",
     };
 
     const res = await listingsRepository.createListing("token", input);
